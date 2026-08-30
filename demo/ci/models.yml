@@ -1,0 +1,5 @@
+# Fictional CI matrix for the example setup. One entry per roster model.
+suite: agent-smoke
+matrix:
+  - atlas-mini
+  - atlas-large

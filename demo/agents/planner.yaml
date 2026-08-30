@@ -1,0 +1,7 @@
+name: planner
+model: atlas-mini
+prompt: ../prompts/system-prompt.md
+rules:
+  - Read before you write.
+  - Cite every file you touch.
+  - Stop and ask when the spec is ambiguous.
