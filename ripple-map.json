@@ -1,0 +1,48 @@
+{
+ "version": 1,
+ "_what": "Each surface is a file that other files quietly depend on. Triggers open a batch; strings are what must move with them. Paths are relative to this file. Edit this map whenever you add a copy of a fact.",
+ "surfaces": {
+  "system-prompt": {
+   "_what": "The agent house rules. Every agent config and every doc that repeats a rule goes stale the moment this changes.",
+   "triggers": ["demo/prompts/system-prompt.md"],
+   "strings": [
+    {
+     "id": "readme-rules",
+     "path": "demo/README.md",
+     "why": "the README mirrors the house rules for humans; a stale mirror is what new contributors read first"
+    },
+    {
+     "id": "agent-docs",
+     "path": "demo/docs/agents.md",
+     "why": "the agent reference repeats the rules alongside each role"
+    },
+    {
+     "id": "planner-config",
+     "path": "demo/agents/planner.yaml",
+     "why": "the planner pins its own copy of the rules it enforces"
+    },
+    {
+     "id": "reviewer-config",
+     "path": "demo/agents/reviewer.yaml",
+     "why": "the reviewer pins its own copy of the rules it checks against"
+    }
+   ]
+  },
+  "model-roster": {
+   "_what": "The models the setup is allowed to run. Named again in CI and in the docs, so a rename here breaks both.",
+   "triggers": ["demo/config/model-roster.json"],
+   "strings": [
+    {
+     "id": "ci-matrix",
+     "path": "demo/ci/models.yml",
+     "why": "CI runs the suite per model by name; a roster rename silently drops a model from the matrix"
+    },
+    {
+     "id": "model-docs",
+     "path": "demo/docs/models.md",
+     "why": "the docs table is what people quote when picking a model"
+    }
+   ]
+  }
+ }
+}

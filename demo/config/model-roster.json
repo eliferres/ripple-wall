@@ -1,0 +1,7 @@
+{
+ "default": "atlas-mini",
+ "models": [
+  {"name": "atlas-mini", "use": "planning and routing"},
+  {"name": "atlas-large", "use": "review and long-context reading"}
+ ]
+}
