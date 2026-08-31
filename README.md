@@ -40,9 +40,10 @@ each unaccounted string, its path, and why the map says it matters. No
 summary counts, no "some files may need review."
 
 **A waiver is a sentence, not a flag.** A string can be closed without
-changing, but only behind `unchanged because ...` of at least 40
-characters, or `blocked-on-owner:` — which lets the batch close and
-keeps the item listed in `status` from then on.
+changing, but only behind `unchanged because ...` or
+`blocked-on-owner: ...`, each of at least 40 characters — the blocked
+form lets the batch close and keeps the item listed in `status` from
+then on.
 
 ## The map format, verbatim
 
@@ -156,8 +157,9 @@ Five refusals, each guarding a way config drift actually happens:
 5. `blocked-on-owner:` lets the batch close but never clears the item.
    It stays in `status`, with its date, until you remove it by hand.
 
-Anything the wall cannot verify, it refuses to guess about. `close` is
-the only command that can exit non-zero on purpose.
+Anything the wall cannot verify, it refuses to guess about. Malformed
+input dies loudly everywhere; `close` is the only command that can exit
+non-zero on a clean, well-formed invocation.
 
 ## Why a hand-written map
 
@@ -178,7 +180,8 @@ blocks anything is a checker that never protected anything.
 - The map is hand-maintained, and it can go stale like anything else. A
   copy you never mapped is a copy the wall cannot see.
 - Matching is per file, not semantic. It knows a file changed, not that
-  it changed *correctly* — a whitespace edit satisfies a string.
+  it changed *correctly* — a whitespace edit satisfies a string. A file
+  that vanishes mid-batch is refused as missing, not counted as moved.
 - Single repo, single working tree. Strings living in another repo or in
   a hosted dashboard can only be tracked as a written answer.
 - State is local to `.ripple/`. Two people running batches on the same

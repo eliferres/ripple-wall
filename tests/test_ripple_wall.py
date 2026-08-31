@@ -153,6 +153,27 @@ class WallTest(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         self.assertIn("no open batch", result.stdout)
 
+    def test_blocked_on_owner_needs_a_reason(self):
+        self.wall("open", "prompts/system.md")
+        result = self.wall("waive", "prompt/docs", "blocked-on-owner:")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("at least", result.stderr + result.stdout)
+
+    def test_vanished_file_does_not_count_as_moved(self):
+        self.wall("open", "prompts/system.md")
+        os.remove(os.path.join(self.dir, "docs/agents.md"))
+        result = self.wall("close")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("VANISHED", result.stdout + result.stderr)
+
+    def test_open_resolves_against_the_callers_cwd(self):
+        sub = os.path.join(self.dir, "elsewhere")
+        os.makedirs(sub)
+        env = dict(os.environ, RIPPLE_MAP=os.path.join(self.dir, "map.json"))
+        result = subprocess.run(["bash", WALL, "open", "../prompts/system.md"], cwd=sub,
+                                env=env, capture_output=True, text=True)
+        self.assertIn("RIPPLE BATCH OPEN", result.stdout)
+
 
 class ShippedWalkthroughTest(unittest.TestCase):
     """The README walkthrough, run against a copy of the shipped demo setup."""

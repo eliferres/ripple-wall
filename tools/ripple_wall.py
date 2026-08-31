@@ -58,14 +58,19 @@ def load_map():
 
 
 def short(path):
-    return os.path.relpath(path, os.path.dirname(os.path.abspath(MAP)))
+    return os.path.relpath(path, os.path.dirname(os.path.realpath(MAP)))
 
 
 def resolve(path):
     """Map paths are written relative to the map, so a clone works from any directory."""
     expanded = os.path.expanduser(path)
-    base = os.path.dirname(os.path.abspath(MAP))
-    return os.path.abspath(expanded if os.path.isabs(expanded) else os.path.join(base, expanded))
+    base = os.path.dirname(os.path.realpath(MAP))
+    return os.path.realpath(expanded if os.path.isabs(expanded) else os.path.join(base, expanded))
+
+
+def resolve_user(path):
+    """Paths typed on the command line resolve against the caller's cwd, like any other tool."""
+    return os.path.realpath(os.path.expanduser(path))
 
 
 def surfaces_for(ripple_map, path):
@@ -108,7 +113,7 @@ def active_surfaces(ripple_map, batch):
 def cmd_open(ripple_map, argv):
     if not argv:
         die("usage: ripple-wall.sh open <changed-path>")
-    path = resolve(argv[0])
+    path = resolve_user(argv[0])
     triggered = surfaces_for(ripple_map, path)
     batch = read_json(BATCH, None)
     if not triggered and not batch:
@@ -157,11 +162,11 @@ def cmd_waive(ripple_map, argv):
     if len(argv) < 2:
         die('usage: ripple-wall.sh waive <key> "unchanged because ..."')
     key, line = argv[0], argv[1].strip()
-    if line.startswith(WAIVER_PREFIX):
+    if line.startswith(WAIVER_PREFIX) or line.startswith(BLOCKED_PREFIX):
         if len(line) < WAIVER_MIN:
-            die("RIPPLE WALL: that waiver is %d characters. Say why in at least %d — a reason nobody can read "
+            die("RIPPLE WALL: that answer is %d characters. Say why in at least %d — a reason nobody can read "
                 "later is the same as no reason." % (len(line), WAIVER_MIN))
-    elif not line.startswith(BLOCKED_PREFIX):
+    else:
         die('RIPPLE WALL: a waiver must start "%s" or "%s". Refusing to close a string on a shrug.'
             % (WAIVER_PREFIX.strip(), BLOCKED_PREFIX))
     batch = read_json(BATCH, None)
@@ -180,7 +185,7 @@ def cmd_waive(ripple_map, argv):
 def cmd_enumerate(ripple_map, argv):
     if not argv:
         die("usage: ripple-wall.sh enumerate <path> [path ...]")
-    surfaces = sorted({s for p in argv for s in surfaces_for(ripple_map, p)})
+    surfaces = sorted({s for p in argv for s in surfaces_for(ripple_map, resolve_user(p))})
     if not surfaces:
         print("ripple: none of those paths trigger a mapped surface.")
         return 0
@@ -199,7 +204,11 @@ def cmd_close(ripple_map, argv):
     moved, answered, blocked, missing = [], [], [], []
     for key, path, why in strings_for(ripple_map, surfaces):
         answer = batch["answers"].get(key)
-        if digest(path) != batch["snapshot"].get(path):
+        current = digest(path)
+        snap = batch["snapshot"].get(path)
+        if current is None and snap is not None and not answer:
+            missing.append((key, short(path) + " — the file has VANISHED since the batch opened", why))
+        elif current is not None and current != snap:
             moved.append(key)
         elif answer and answer.startswith(BLOCKED_PREFIX):
             blocked.append((key, answer))
