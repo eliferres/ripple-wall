@@ -1,13 +1,8 @@
 # ripple-wall
 
-Change one foundational file in an agent setup — the system prompt, the
-model roster, the rules file — and every copy of that fact scattered
-through the repo goes stale in silence. This is a wall against that: one
-JSON map of what depends on what, a batch that opens when a foundational
-file is touched, and a close command that refuses until every attached
-string has moved or carries a written reason.
+Change the system prompt, the model roster, or the rules file in an agent setup and every copy of that fact goes stale in silence. ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. Bash and stdlib Python, no install.
 
-Bash and stdlib Python 3.9+. No install, no dependencies, no daemon.
+No dependencies, no daemon.
 
 ![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
 
@@ -23,8 +18,8 @@ cd ripple-wall
 
 That prints every file a change to the demo system prompt must drag with
 it. Point `ripple-map.json` at your own files and it prints yours. The
-[walkthrough](#the-walkthrough) below runs the full loop — open, refuse,
-fix, waive, close — against the demo setup in this repo.
+[walkthrough](#the-walkthrough) below runs the full loop (open, refuse,
+fix, waive, close) against the demo setup in this repo.
 
 ## The four ideas
 
@@ -43,7 +38,7 @@ summary counts, no "some files may need review."
 
 **A waiver is a sentence, not a flag.** A string can be closed without
 changing, but only behind `unchanged because ...` or
-`blocked-on-owner: ...`, each of at least 40 characters — the blocked
+`blocked-on-owner: ...`, each of at least 40 characters: the blocked
 form lets the batch close and keeps the item listed in `status` from
 then on.
 
@@ -73,7 +68,7 @@ One surface from `ripple-map.json`, unedited. That is the whole schema:
 `triggers` are exact paths, directories, or globs; a write to any of
 them opens the batch. Every `path` is relative to the map file, so a
 clone works from any directory (`~` and absolute paths also work, for
-maps that guard files outside the repo). The `why` is not decoration —
+maps that guard files outside the repo). The `why` is not decoration:
 it is what the refusal prints back at you months later, and a string
 without a real one is a string nobody will honor.
 
@@ -96,8 +91,8 @@ RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (system-prompt).
   Next: ./ripple-wall.sh close
 ```
 
-You update the two places you remember — the agent docs and the planner
-— and call it done.
+You update the two places you remember (the agent docs and the planner)
+and call it done.
 
 ```bash
 printf -- '- Name the owner of every file you change.\n' >> demo/docs/agents.md
@@ -155,7 +150,7 @@ Five refusals, each guarding a way config drift actually happens:
 3. A waiver under 40 characters is refused. A reason nobody can read
    later is the same as no reason.
 4. A waiver for a key that is not on the open surfaces is refused, with
-   the valid keys printed — a typo must never look like an answer.
+   the valid keys printed. A typo must never look like an answer.
 5. `blocked-on-owner:` lets the batch close but never clears the item.
    It stays in `status`, with its date, until you remove it by hand.
 
@@ -167,7 +162,7 @@ non-zero on a clean, well-formed invocation.
 
 The alternative is inference: parse the files, find the duplicated
 strings, guess the dependencies. That fails in the direction that
-matters — it misses the copy phrased differently, which is exactly the
+matters: it misses the copy phrased differently, which is exactly the
 copy that goes stale unnoticed, and it cannot know *why* two files hold
 the same fact. A map is boring, auditable, diffable, and honest about
 its own coverage. The map is also the artifact worth keeping: it is the
@@ -182,7 +177,7 @@ blocks anything is a checker that never protected anything.
 - The map is hand-maintained, and it can go stale like anything else. A
   copy you never mapped is a copy the wall cannot see.
 - Matching is per file, not semantic. It knows a file changed, not that
-  it changed *correctly* — a whitespace edit satisfies a string. A file
+  it changed *correctly*: a whitespace edit satisfies a string. A file
   that vanishes mid-batch is refused as missing, not counted as moved.
 - Single repo, single working tree. Strings living in another repo or in
   a hosted dashboard can only be tracked as a written answer.
