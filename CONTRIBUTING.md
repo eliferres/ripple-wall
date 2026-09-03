@@ -8,7 +8,7 @@ Welcome things:
 
 Ground rules: the wall stays stdlib-only and single-file, the map stays
 plain JSON, and every change keeps `python -m unittest discover -s tests`
-green. Tests use real files in temp directories, never mocks — a test
+green. Tests use real files in temp directories, never mocks: a test
 that only proves a function was called proves nothing about a wall.
 
 One thing that will be declined: a way to close a batch without either
