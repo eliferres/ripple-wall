@@ -11,6 +11,8 @@ Bash and stdlib Python 3.9+. No install, no dependencies, no daemon.
 
 ![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
 
+<img src="demo/terminal.svg" width="660" alt="Terminal session showing ripple-wall refusing to close a batch until two unaccounted strings move or are answered, then closing clean.">
+
 ## Quick start
 
 ```bash
