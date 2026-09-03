@@ -1,0 +1,17 @@
+[
+  {
+    "cmd": "./ripple-wall.sh open demo/prompts/system-prompt.md",
+    "out": "RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (system-prompt).\n  Next: ./ripple-wall.sh close",
+    "status": 0
+  },
+  {
+    "cmd": "./ripple-wall.sh close",
+    "out": "RIPPLE WALL: batch CANNOT close — 2 mapped string(s) unaccounted for:\n  MISSING system-prompt/readme-rules — demo/README.md\n  MISSING system-prompt/reviewer-config — demo/agents/reviewer.yaml",
+    "status": 1
+  },
+  {
+    "cmd": "./ripple-wall.sh waive system-prompt/reviewer-config \"unchanged because the reviewer only ever sees diffs, never file ownership\" && ./ripple-wall.sh close",
+    "out": "ripple: answer recorded for system-prompt/reviewer-config\nRIPPLE WALL: batch CLOSED clean — 3 moved, 1 answered, across 1 surface(s).",
+    "status": 0
+  }
+]
