@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
 
+Nothing yet.
+
+## [1.1.0](https://github.com/eliferres/ripple-wall/releases/tag/v1.1.0) - 2026-09-03
+
 ### Added
 - Added a terminal demo to the README's first screen, showing open, a close refused on two unaccounted strings, and waive then close.
 - Added macos-latest to the CI matrix alongside ubuntu-latest.
