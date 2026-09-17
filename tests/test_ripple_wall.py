@@ -259,6 +259,28 @@ class WallTest(unittest.TestCase):
         self.assertEqual(0, status.returncode)
         self.assertIn("prompt/planner", status.stdout)
 
+    def test_map_of_the_wrong_shape_refuses_instead_of_raising(self):
+        wrong_maps = [
+            "{}",
+            "null",
+            "[]",
+            '{"version": 1, "surfaces": []}',
+            '{"version": 1, "surfaces": {"prompt": {"triggers": ["prompts/system.md"]}}}',
+            '{"version": 1, "surfaces": {"prompt": {"strings": []}}}',
+            '{"version": 1, "surfaces": {"prompt": {"triggers": ["p"], "strings": [{"id": "x"}]}}}',
+        ]
+        map_path = os.path.join(self.dir, "map.json")
+        for body in wrong_maps:
+            with open(map_path, "w") as f:
+                f.write(body)
+            result = self.wall("enumerate", "prompts/system.md")
+            self.assertEqual(2, result.returncode, body)
+            self.assertEqual("", result.stdout, body)
+            lines = result.stderr.splitlines()
+            self.assertEqual(1, len(lines), body)
+            self.assertIn(map_path, lines[0])
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_corrupt_map_refuses_every_command(self):
         with open(os.path.join(self.dir, "map.json"), "w") as f:
             f.write("not json")
