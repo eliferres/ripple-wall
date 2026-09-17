@@ -97,9 +97,32 @@ def log(event, **fields):
 
 
 def load_map():
+    """The map, checked for the shape the whole tool reads. It is hand-written, so a
+    missing key is an ordinary mistake, and guessing past it is what this tool refuses."""
     if not os.path.exists(MAP):
         refuse("no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP." % MAP)
-    return read_json(MAP, None)
+    ripple_map = read_json(MAP, None)
+    bad = map_fault(ripple_map)
+    if bad:
+        refuse("%s is not a map: %s. Refusing to guard a setup it cannot read." % (MAP, bad))
+    return ripple_map
+
+
+def map_fault(ripple_map):
+    """The first thing wrong with a parsed map, in the reader's words, or None."""
+    if not isinstance(ripple_map, dict) or not isinstance(ripple_map.get("surfaces"), dict):
+        return "no surfaces object at the top level"
+    for surface_id, surface in ripple_map["surfaces"].items():
+        if not isinstance(surface, dict):
+            return "surface %s is not an object" % surface_id
+        for key in ("triggers", "strings"):
+            if not isinstance(surface.get(key), list):
+                return "surface %s has no %s list" % (surface_id, key)
+        for string in surface["strings"]:
+            missing = [k for k in ("id", "path", "why") if not isinstance(string, dict) or k not in string]
+            if missing:
+                return "a string under surface %s has no %s" % (surface_id, ", ".join(missing))
+    return None
 
 
 def short(path):
