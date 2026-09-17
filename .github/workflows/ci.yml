@@ -19,5 +19,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run tests
         run: python -m unittest discover -s tests -v
+      - name: The installed command runs
+        run: |
+          python -m pip install .
+          ripple-wall --version
+          ripple-wall enumerate demo/prompts/system-prompt.md
       - name: The shipped map resolves
         run: ./ripple-wall.sh enumerate demo/prompts/system-prompt.md demo/config/model-roster.json

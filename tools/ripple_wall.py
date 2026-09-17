@@ -1,9 +1,12 @@
 """The wall itself: a fail-closed batch over the strings a foundational change must move.
 
-Stdlib only, Python 3.9+. Driven through ./ripple-wall.sh; run directly with the same
-subcommands if you prefer. RIPPLE_MAP and RIPPLE_STATE_DIR override the defaults, which
-is how the tests stay hermetic.
+Stdlib only, Python 3.9+. Driven through ./ripple-wall.sh in a clone, or the ripple-wall
+command once installed; both take the same subcommands. A clone uses the map at its own
+root; an install uses ripple-map.json in the current directory. RIPPLE_MAP and
+RIPPLE_STATE_DIR override both, which is how the tests stay hermetic.
 """
+
+__version__ = "1.1.0"
 
 import fnmatch
 import hashlib
@@ -12,8 +15,10 @@ import os
 import sys
 import time
 
-MAP = os.environ.get("RIPPLE_MAP") or os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ripple-map.json")
+CHECKOUT_MAP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ripple-map.json")
+# An installed module has no map beside it, so the project it guards is wherever it runs.
+MAP = os.environ.get("RIPPLE_MAP") or (
+    CHECKOUT_MAP if os.path.isfile(CHECKOUT_MAP) else os.path.abspath("ripple-map.json"))
 STATE = os.environ.get("RIPPLE_STATE_DIR") or os.path.join(os.path.dirname(os.path.abspath(MAP)), ".ripple")
 BATCH = os.path.join(STATE, "batch.json")
 BLOCKED = os.path.join(STATE, "blocked.json")
@@ -50,6 +55,10 @@ def log(event, **fields):
 
 
 def load_map():
+    if not os.path.exists(MAP):
+        print("RIPPLE WALL: no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP."
+              % MAP, file=sys.stderr)
+        sys.exit(2)
     try:
         with open(MAP) as f:
             return json.load(f)
@@ -243,8 +252,12 @@ COMMANDS = {"open": cmd_open, "status": cmd_status, "waive": cmd_waive,
             "enumerate": cmd_enumerate, "close": cmd_close}
 
 
-def main(argv):
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
     command = argv[0] if argv else "status"
+    if command == "--version":
+        print("ripple-wall %s" % __version__)
+        return 0
     if command not in COMMANDS:
         die("ripple-wall: unknown command %r. Try: %s" % (command, " / ".join(COMMANDS)), 2)
     return COMMANDS[command](load_map(), argv[1:])

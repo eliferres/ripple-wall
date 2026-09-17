@@ -1,6 +1,6 @@
 # ripple-wall
 
-Change the system prompt, the model roster, or the rules file in an agent setup and every copy of that fact goes stale in silence. ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. Bash and stdlib Python, no install.
+Change the system prompt, the model roster, or the rules file in an agent setup and every copy of that fact goes stale in silence. ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. Bash and stdlib Python; run it from a clone or install the command.
 
 No dependencies, no daemon.
 
@@ -9,6 +9,18 @@ No dependencies, no daemon.
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing ripple-wall refusing to close a batch until two unaccounted strings move or are answered, then closing clean.">
 
 ## Quick start
+
+Install the command (not on PyPI; this installs from GitHub):
+
+```bash
+pipx install git+https://github.com/eliferres/ripple-wall
+```
+
+Installed, `ripple-wall` reads `ripple-map.json` from the directory you
+run it in, so run it from your project root: `ripple-wall enumerate
+<path>` is the same as `./ripple-wall.sh enumerate <path>` in a clone.
+
+Or clone it and run the demo in place:
 
 ```bash
 git clone https://github.com/eliferres/ripple-wall.git
