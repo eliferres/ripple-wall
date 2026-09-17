@@ -35,11 +35,16 @@ def die(message, code=1):
 
 
 def read_json(path, fallback):
+    """A missing file means nothing recorded yet. A file that is there but will not parse
+    is refused: reading it as empty would let a corrupt batch close as if none were open."""
     try:
         with open(path) as f:
             return json.load(f)
-    except Exception:
+    except FileNotFoundError:
         return fallback
+    except (OSError, ValueError) as e:
+        print("RIPPLE WALL: cannot read %s (%s). Refusing to guess what it held." % (path, e), file=sys.stderr)
+        sys.exit(2)
 
 
 def write_json(path, value):
@@ -59,11 +64,7 @@ def load_map():
         print("RIPPLE WALL: no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP."
               % MAP, file=sys.stderr)
         sys.exit(2)
-    try:
-        with open(MAP) as f:
-            return json.load(f)
-    except Exception as e:
-        die("RIPPLE WALL: map unreadable at %s (%s). The wall will not run blind — fix the map first." % (MAP, e), 2)
+    return read_json(MAP, None)
 
 
 def short(path):
