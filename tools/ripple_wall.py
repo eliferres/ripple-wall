@@ -34,6 +34,17 @@ def die(message, code=1):
     sys.exit(code)
 
 
+def refuse(message):
+    """State the wall cannot trust stops it: one line on stderr, exit 2."""
+    print("RIPPLE WALL: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
+MISSING = object()  # distinguishes "no file" from a file holding null
+
+BATCH_KEYS = ("opened", "triggers", "answers", "snapshot")
+
+
 def read_json(path, fallback):
     """A missing file means nothing recorded yet. A file that is there but will not parse
     is refused: reading it as empty would let a corrupt batch close as if none were open."""
@@ -43,8 +54,30 @@ def read_json(path, fallback):
     except FileNotFoundError:
         return fallback
     except (OSError, ValueError) as e:
-        print("RIPPLE WALL: cannot read %s (%s). Refusing to guess what it held." % (path, e), file=sys.stderr)
-        sys.exit(2)
+        refuse("cannot read %s (%s). Refusing to guess what it held." % (path, e))
+
+
+def read_batch():
+    """The batch file as the wall wrote it, or None when there is no batch.
+
+    Well-formed JSON of the wrong shape is refused too: read as no batch, it would
+    let close pass over every string the real batch was guarding."""
+    batch = read_json(BATCH, MISSING)
+    if batch is MISSING:
+        return None
+    missing = [k for k in BATCH_KEYS if not isinstance(batch, dict) or k not in batch]
+    if missing:
+        refuse("%s is not a batch: no %s. Refusing to read it as no batch open."
+               % (BATCH, ", ".join(missing)))
+    return batch
+
+
+def read_blocked():
+    blocked = read_json(BLOCKED, [])
+    if not isinstance(blocked, list) or any(
+            not isinstance(item, dict) or not {"key", "line", "ts"} <= set(item) for item in blocked):
+        refuse("%s is not a list of blocked items. Refusing to read it as nothing blocked." % BLOCKED)
+    return blocked
 
 
 def write_json(path, value):
@@ -61,9 +94,7 @@ def log(event, **fields):
 
 def load_map():
     if not os.path.exists(MAP):
-        print("RIPPLE WALL: no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP."
-              % MAP, file=sys.stderr)
-        sys.exit(2)
+        refuse("no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP." % MAP)
     return read_json(MAP, None)
 
 
@@ -125,7 +156,7 @@ def cmd_open(ripple_map, argv):
         die("usage: ripple-wall.sh open <changed-path>")
     path = resolve_user(argv[0])
     triggered = surfaces_for(ripple_map, path)
-    batch = read_json(BATCH, None)
+    batch = read_batch()
     if not triggered and not batch:
         print("ripple: %s is not a foundational surface — nothing to open." % short(path))
         return 0
@@ -152,7 +183,7 @@ def cmd_open(ripple_map, argv):
 
 
 def cmd_status(ripple_map, argv):
-    batch = read_json(BATCH, None)
+    batch = read_batch()
     if batch:
         surfaces = active_surfaces(ripple_map, batch)
         print("RIPPLE BATCH OPEN since %s — surfaces: %s" % (batch["opened"], ", ".join(surfaces)))
@@ -160,7 +191,7 @@ def cmd_status(ripple_map, argv):
         print("  next: ./ripple-wall.sh close   (a refusal names exactly what is missing)")
     else:
         print("ripple: no open batch.")
-    blocked = read_json(BLOCKED, [])
+    blocked = read_blocked()
     if blocked:
         print("BLOCKED ON OWNER (%d) — still open, still your problem:" % len(blocked))
         for item in blocked:
@@ -179,7 +210,7 @@ def cmd_waive(ripple_map, argv):
     else:
         die('RIPPLE WALL: a waiver must start "%s" or "%s". Refusing to close a string on a shrug.'
             % (WAIVER_PREFIX.strip(), BLOCKED_PREFIX))
-    batch = read_json(BATCH, None)
+    batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch to answer into.")
     known = {k for k, _, _ in strings_for(ripple_map, active_surfaces(ripple_map, batch))}
@@ -207,7 +238,7 @@ def cmd_enumerate(ripple_map, argv):
 
 def cmd_close(ripple_map, argv):
     label = argv[0] if argv else ""
-    batch = read_json(BATCH, None)
+    batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch.")
     surfaces = active_surfaces(ripple_map, batch)
@@ -237,7 +268,7 @@ def cmd_close(ripple_map, argv):
     log("closed", label=label, surfaces=surfaces, moved=moved,
         answered=dict(answered), blocked=dict(blocked))
     if blocked:
-        pending = read_json(BLOCKED, [])
+        pending = read_blocked()
         pending += [{"key": k, "line": line, "label": label, "ts": time.strftime("%F %T")} for k, line in blocked]
         write_json(BLOCKED, pending)
         print("RIPPLE WALL: batch closed, %d item(s) BLOCKED ON OWNER and flagged until answered:" % len(blocked))

@@ -190,6 +190,42 @@ class WallTest(unittest.TestCase):
             self.assertIn(batch, lines[0])
             self.assertIn("Unterminated string", lines[0])
 
+    def test_batch_file_that_is_not_a_batch_refuses_close(self):
+        batch = os.path.join(self.dir, ".ripple", "batch.json")
+        for body in ("{}", "[]", "null", '{"opened": "2026-09-17 10:00:00", "triggers": []}'):
+            self.append("prompts/system.md", "- cite files\n")
+            self.wall("open", "prompts/system.md")
+            with open(batch, "w") as f:
+                f.write(body)
+            result = self.wall("close")
+            self.assertEqual(2, result.returncode, body)
+            self.assertEqual("", result.stdout, body)
+            lines = result.stderr.splitlines()
+            self.assertEqual(1, len(lines), body)
+            self.assertIn(batch, lines[0])
+            os.remove(batch)
+
+    def test_blocked_list_that_is_not_a_list_refuses_status(self):
+        blocked = os.path.join(self.dir, ".ripple", "blocked.json")
+        os.makedirs(os.path.dirname(blocked), exist_ok=True)
+        with open(blocked, "w") as f:
+            f.write('{"prompt/docs": "blocked-on-owner: waiting"}')
+        result = self.wall("status")
+        self.assertEqual(2, result.returncode)
+        lines = result.stderr.splitlines()
+        self.assertEqual(1, len(lines))
+        self.assertIn(blocked, lines[0])
+
+    def test_state_the_wall_writes_itself_stays_readable(self):
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        self.append("docs/agents.md", "- cite files\n")
+        self.wall("waive", "prompt/planner", "blocked-on-owner: only the owner can reword the rule")
+        self.assertEqual(0, self.wall("close").returncode)
+        status = self.wall("status")
+        self.assertEqual(0, status.returncode)
+        self.assertIn("prompt/planner", status.stdout)
+
     def test_corrupt_map_refuses_every_command(self):
         with open(os.path.join(self.dir, "map.json"), "w") as f:
             f.write("not json")
