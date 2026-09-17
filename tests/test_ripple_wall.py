@@ -174,6 +174,33 @@ class WallTest(unittest.TestCase):
                                 env=env, capture_output=True, text=True)
         self.assertIn("RIPPLE BATCH OPEN", result.stdout)
 
+    def test_corrupt_batch_file_refuses_close(self):
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        batch = os.path.join(self.dir, ".ripple", "batch.json")
+        with open(batch, "w") as f:
+            f.write('{"opened": "2026-09-17 10:00:00", "trig')
+        for command in ("close", "status", "open", "waive"):
+            args = {"open": ["prompts/system.md"], "waive": ["prompt/planner", GOOD_WAIVER]}.get(command, [])
+            result = self.wall(command, *args)
+            self.assertEqual(2, result.returncode, command)
+            self.assertEqual("", result.stdout, command)
+            lines = result.stderr.splitlines()
+            self.assertEqual(1, len(lines), command)
+            self.assertIn(batch, lines[0])
+            self.assertIn("Unterminated string", lines[0])
+
+    def test_corrupt_map_refuses_every_command(self):
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            f.write("not json")
+        for command in ("close", "status", "enumerate", "open"):
+            result = self.wall(command, "prompts/system.md")
+            self.assertEqual(2, result.returncode, command)
+            lines = result.stderr.splitlines()
+            self.assertEqual(1, len(lines), command)
+            self.assertIn(os.path.join(self.dir, "map.json"), lines[0])
+            self.assertIn("Expecting value", lines[0])
+
 
 class ShippedWalkthroughTest(unittest.TestCase):
     """The README walkthrough, run against a copy of the shipped demo setup."""

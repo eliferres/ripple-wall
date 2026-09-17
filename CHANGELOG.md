@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
+### Fixed
+- Fixed a corrupt or unreadable batch file reading as "no open batch", which let `close` pass: every command that reads the batch, the blocked list, or the map now exits 2 with one line on stderr naming the file and the parse error.
+
 ## [1.1.0](https://github.com/eliferres/ripple-wall/releases/tag/v1.1.0) - 2026-09-03
 
 ### Added
