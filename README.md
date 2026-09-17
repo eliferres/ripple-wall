@@ -19,6 +19,9 @@ pipx install git+https://github.com/eliferres/ripple-wall
 Installed, `ripple-wall` reads `ripple-map.json` from the directory you
 run it in, so run it from your project root: `ripple-wall enumerate
 <path>` is the same as `./ripple-wall.sh enumerate <path>` in a clone.
+One exception: an editable install (`pip install -e`) keeps the module
+inside the clone, so it reads the clone's own map wherever you run it.
+Point `RIPPLE_MAP` at the map you mean if that is not what you want.
 
 Or clone it and run the demo in place:
 

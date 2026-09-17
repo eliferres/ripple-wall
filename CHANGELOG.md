@@ -14,6 +14,7 @@
 - Fixed a batch file that parses but is not a batch (`{}`, `[]`, `null`, or an object missing the keys the wall writes) reading as "no open batch", and the same check for the blocked list: both now exit 2 with one line on stderr.
 
 ### Changed
+- Changed the install section to say that an editable install reads the clone's own map wherever it runs, and how to point it elsewhere.
 - Changed the README shape: the walkthrough now sits directly after Quick start as "A batch from open to close", the map section is "Writing the map", the refusals section is "What close refuses" and ends with an exit-code table, and the file tour folds into one paragraph under Quick start.
 
 ## [1.1.0](https://github.com/eliferres/ripple-wall/releases/tag/v1.1.0) - 2026-09-03
