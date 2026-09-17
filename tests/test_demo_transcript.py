@@ -21,7 +21,6 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRANSCRIPT = os.path.join(REPO, "demo", "transcript.json")
 PICTURE = os.path.join(REPO, "demo", "terminal.svg")
 SVG_NS = {"svg": "http://www.w3.org/2000/svg"}
-FIRST_CONTENT_Y = 80  # rows above this are the window chrome, not session text
 ELLIPSIS = "…"
 TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
 SKIP = shutil.ignore_patterns(".git", "__pycache__", ".ripple", "*.pyc")
@@ -50,18 +49,21 @@ def stable(out, copy):
     return TIMESTAMP.sub("2026-09-03 12:00:00", out.rstrip("\n"))
 
 
-def picture_rows():
-    """(kind, text) for every session row of the SVG, kind being prompt, cont or out."""
+def picture_rows(picture=PICTURE):
+    """(kind, text) for every session row of the SVG, kind being prompt, cont or out.
+
+    The window's own label is the only text carrying a font-size of its own, so it is
+    skipped by that, never by where it sits: the drawing's geometry is free to change."""
     rows = []
-    for text_el in ET.parse(PICTURE).getroot().findall("svg:text", SVG_NS):
-        y = text_el.get("y")
-        if y is None or int(y) < FIRST_CONTENT_Y:
+    for text_el in ET.parse(picture).getroot().findall("svg:text", SVG_NS):
+        if text_el.get("font-size"):
             continue
         tspans = text_el.findall("svg:tspan", SVG_NS)
         if tspans:
             rows.append(("prompt", tspans[-1].text or ""))
         elif text_el.get("class") == "cmd":
-            rows.append(("cont", (text_el.text or "")[4:]))
+            raw = text_el.text or ""
+            rows.append(("cont", raw[4:] if raw.startswith("    ") else raw))
         else:
             rows.append(("out", text_el.text or ""))
     return rows
@@ -95,36 +97,53 @@ class TranscriptTest(unittest.TestCase):
 
 
 class PictureTest(unittest.TestCase):
-    """Every row of demo/terminal.svg traces back to the transcript, in order."""
+    """Every row of demo/terminal.svg traces back to the transcript, in order, with none
+    of its output dropped: an abridged picture is the defect this wall exists for."""
 
     def setUp(self):
         with open(TRANSCRIPT) as f:
             self.transcript = json.load(f)
 
-    def sessions(self):
-        """Group the picture rows into one (cmd chunks, output rows) block per command."""
-        blocks = []
-        for kind, text in picture_rows():
-            if kind == "prompt":
-                blocks.append(([text], []))
-            else:
-                self.assertTrue(blocks, "the picture starts with output, before any command")
-                blocks[-1][0 if kind == "cont" else 1].append(text)
-        return blocks
+    def check(self, rows):
+        """Walk transcript and picture in step. Fails on a wrong, missing, extra or
+        reordered row; the picture may run out only between two commands."""
+        i = 0
+        for entry in self.transcript:
+            if i == len(rows):
+                return  # the picture stopped at a command boundary, which is allowed
+            chunks = []
+            self.assertEqual("prompt", rows[i][0], "expected the command %r here" % entry["cmd"])
+            chunks.append(rows[i][1])
+            i += 1
+            while i < len(rows) and rows[i][0] == "cont":
+                chunks.append(rows[i][1])
+                i += 1
+            rejoined = " ".join(c[:-2] if c.endswith(" \\") else c for c in chunks)
+            self.assertEqual(entry["cmd"], rejoined, "command rows do not rebuild the recorded command")
+            for line in [l for l in entry["out"].splitlines() if l.strip()]:
+                self.assertLess(i, len(rows),
+                                "the picture stops inside the output of %r, dropping %r"
+                                % (entry["cmd"], line))
+                kind, shown = rows[i]
+                self.assertEqual("out", kind, "expected the output line %r here" % line)
+                self.assertTrue(untrimmed(shown, line),
+                                "picture row %r is not the start of real line %r" % (shown, line))
+                i += 1
+        self.assertEqual(len(rows), i, "the picture shows rows the transcript does not account for")
 
     def test_every_picture_row_comes_from_the_transcript(self):
-        blocks = self.sessions()
-        self.assertEqual(len(self.transcript), len(blocks),
-                         "the picture shows %d commands, the transcript records %d"
-                         % (len(blocks), len(self.transcript)))
-        for entry, (chunks, shown) in zip(self.transcript, blocks):
-            rejoined = " ".join(c[:-2] if c.endswith(" \\") else c for c in chunks)
-            self.assertEqual(entry["cmd"], rejoined, "command row does not rebuild its cmd")
-            real_lines = [l for l in entry["out"].splitlines() if l.strip()]
-            self.assertLessEqual(len(shown), len(real_lines), "extra output rows under: %s" % entry["cmd"])
-            for row, real in zip(shown, real_lines):
-                self.assertTrue(untrimmed(row, real),
-                                "picture row %r is not the start of real line %r" % (row, real))
+        self.check(picture_rows())
+
+    def test_the_check_catches_a_dropped_or_reordered_row(self):
+        rows = picture_rows()
+        with self.assertRaises(AssertionError):
+            self.check(rows[:3] + rows[4:])
+        swapped = list(rows)
+        swapped[3], swapped[4] = swapped[4], swapped[3]
+        with self.assertRaises(AssertionError):
+            self.check(swapped)
+        with self.assertRaises(AssertionError):
+            self.check(rows + [("out", "a line nobody ran")])
 
 
 if __name__ == "__main__":
