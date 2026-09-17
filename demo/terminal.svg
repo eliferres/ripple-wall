@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 460" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="20">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 812" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="20">
   <title id="t">ripple-wall demo terminal</title>
-  <desc id="d">A terminal session: opening a batch on the shared system prompt, close refusing with two unaccounted strings, then waiving the one that genuinely does not apply and closing clean.</desc>
+  <desc id="d">A terminal session: adding a house rule to the shared system prompt, opening a batch, close refusing with two unaccounted strings, then updating one and waiving the other before closing clean.</desc>
   <style>
     .p { fill: #7ee2a8; }
     .cmd { fill: #e8eef5; }
@@ -8,23 +8,34 @@
     .bad { fill: #ff9494; }
     .good { fill: #7ee2a8; }
   </style>
-  <rect width="660" height="460" rx="14" fill="#0b0f14"/>
+  <rect width="660" height="812" rx="14" fill="#0b0f14"/>
   <rect width="660" height="40" rx="14" fill="#11161d"/>
   <rect y="26" width="660" height="14" fill="#11161d"/>
   <circle cx="26" cy="20" r="6" fill="#ff5f57"/>
   <circle cx="48" cy="20" r="6" fill="#febc2e"/>
   <circle cx="70" cy="20" r="6" fill="#28c840"/>
   <text x="92" y="26" class="dim" font-size="14">ripple-wall</text>
-  <text x="24" y="80"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh open demo/prompts/system-prompt.md</tspan></text>
-  <text x="24" y="112" class="dim">RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (…</text>
-  <text x="24" y="144" class="dim">  Next: ./ripple-wall.sh close</text>
-  <text x="24" y="176"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh close</tspan></text>
-  <text x="24" y="208" class="bad">RIPPLE WALL: batch CANNOT close — 2 mapped string(s) unacco…</text>
-  <text x="24" y="240" class="bad">  MISSING system-prompt/readme-rules — demo/README.md</text>
-  <text x="24" y="272" class="bad">  MISSING system-prompt/reviewer-config — demo/agents/revie…</text>
-  <text x="24" y="304"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh waive system-prompt/reviewer-config \</tspan></text>
-  <text x="24" y="336" class="cmd">    &quot;unchanged because the reviewer only ever sees diffs, \</text>
-  <text x="24" y="368" class="cmd">    never file ownership&quot; &amp;&amp; ./ripple-wall.sh close</text>
-  <text x="24" y="400" class="dim">ripple: answer recorded for system-prompt/reviewer-config</text>
-  <text x="24" y="432" class="good">RIPPLE WALL: batch CLOSED clean — 3 moved, 1 answered, acro…</text>
+  <text x="24" y="80"><tspan class="p">$</tspan><tspan class="cmd" dx="8">printf -- '- Name the owner of every file you change.\n' \</tspan></text>
+  <text x="24" y="112" class="cmd">    &gt;&gt; demo/prompts/system-prompt.md</text>
+  <text x="24" y="144"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh open demo/prompts/system-prompt.md</tspan></text>
+  <text x="24" y="176" class="dim">RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (…</text>
+  <text x="24" y="208" class="dim">  Every mapped string must move or carry a written reason b…</text>
+  <text x="24" y="240" class="dim">  Next: ./ripple-wall.sh close</text>
+  <text x="24" y="272"><tspan class="p">$</tspan><tspan class="cmd" dx="8">printf -- '- Name the owner of every file you change.\n' \</tspan></text>
+  <text x="24" y="304" class="cmd">    &gt;&gt; demo/docs/agents.md</text>
+  <text x="24" y="336"><tspan class="p">$</tspan><tspan class="cmd" dx="8">printf -- '  - Name the owner of every file you change.\n' \</tspan></text>
+  <text x="24" y="368" class="cmd">    &gt;&gt; demo/agents/planner.yaml</text>
+  <text x="24" y="400"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh close</tspan></text>
+  <text x="24" y="432" class="bad">RIPPLE WALL: batch CANNOT close — 2 mapped string(s) unacco…</text>
+  <text x="24" y="464" class="bad">  MISSING system-prompt/readme-rules — demo/README.md (the…</text>
+  <text x="24" y="496" class="bad">  MISSING system-prompt/reviewer-config — demo/agents/revie…</text>
+  <text x="24" y="528" class="dim">Update each one, or answer it: ./ripple-wall.sh waive &lt;key&gt;…</text>
+  <text x="24" y="560"><tspan class="p">$</tspan><tspan class="cmd" dx="8">printf -- '- Name the owner of every file you change.\n' \</tspan></text>
+  <text x="24" y="592" class="cmd">    &gt;&gt; demo/README.md</text>
+  <text x="24" y="624"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh waive system-prompt/reviewer-config \</tspan></text>
+  <text x="24" y="656" class="cmd">    &quot;unchanged because the reviewer only ever sees diffs, \</text>
+  <text x="24" y="688" class="cmd">    never file ownership&quot;</text>
+  <text x="24" y="720" class="dim">ripple: answer recorded for system-prompt/reviewer-config</text>
+  <text x="24" y="752"><tspan class="p">$</tspan><tspan class="cmd" dx="8">./ripple-wall.sh close</tspan></text>
+  <text x="24" y="784" class="good">RIPPLE WALL: batch CLOSED clean — 3 moved, 1 answered, acro…</text>
 </svg>
