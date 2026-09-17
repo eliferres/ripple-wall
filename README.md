@@ -151,7 +151,8 @@ without a real one is a string nobody will honor.
 
 ## What close refuses
 
-Five refusals, each guarding a way config drift actually happens:
+Six refusals, each guarding a way config drift actually happens. Five
+are about the answer you give:
 
 1. A mapped string that did not change and carries no answer blocks the
    close, by name.
@@ -164,15 +165,16 @@ Five refusals, each guarding a way config drift actually happens:
 5. `blocked-on-owner:` lets the batch close but never clears the item.
    It stays in `status`, with its date, until you remove it by hand.
 
-Anything the wall cannot verify, it refuses to guess about. Malformed
-input dies loudly everywhere; `close` is the only command that can exit
-non-zero on a clean invocation over sound state.
+The sixth is state the wall cannot trust: a map, batch file or blocked
+list that is missing, will not parse, or is not the shape the wall
+reads. It is never treated as an empty one, and it stops every command
+that reads it.
 
-| Exit | What it means |
-|---|---|
-| 0 | The batch closed, or the command had nothing to refuse. |
-| 1 | `close` refused a batch, or a waiver was rejected. |
-| 2 | The wall could not trust what it read: no map, or a map, batch file or blocked list that will not parse or is not the shape the wall writes. It never treats an unreadable file as an empty one. |
+| Exit | What it means | Printed on |
+|---|---|---|
+| 0 | The command did what was asked: a batch opened, a string was answered, a batch closed. | stdout |
+| 1 | `close` refused, naming every unaccounted string, or there was no batch to close or answer into, or a waiver was rejected. Answer it and run again. | stdout |
+| 2 | The wall could not run at all: wrong usage, an unknown subcommand, or state it cannot trust. One line, and nothing is written. | stderr |
 
 ## Why a hand-written map
 

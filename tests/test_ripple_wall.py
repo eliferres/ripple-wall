@@ -204,8 +204,8 @@ class WallTest(unittest.TestCase):
         self.assertIn('answer it: ripple-wall waive <key>', refused.stdout)
         usage = subprocess.run([launcher, "enumerate"], cwd=self.dir, env=env,
                                capture_output=True, text=True)
-        self.assertIn("usage: ripple-wall enumerate", usage.stdout)
-        self.assertNotIn(".sh", usage.stdout)
+        self.assertIn("usage: ripple-wall enumerate", usage.stderr)
+        self.assertNotIn(".sh", usage.stderr)
 
     def test_corrupt_batch_file_refuses_close(self):
         self.append("prompts/system.md", "- cite files\n")
@@ -258,6 +258,26 @@ class WallTest(unittest.TestCase):
         status = self.wall("status")
         self.assertEqual(0, status.returncode)
         self.assertIn("prompt/planner", status.stdout)
+
+    def test_usage_errors_exit_2_on_stderr(self):
+        for args in (["enumerate"], ["open"], ["waive", "prompt/docs"], ["nonsense"]):
+            result = self.wall(*args)
+            self.assertEqual(2, result.returncode, args)
+            self.assertEqual("", result.stdout, args)
+            self.assertEqual(1, len(result.stderr.splitlines()), args)
+
+    def test_exit_codes_are_what_the_table_documents(self):
+        self.assertEqual(0, self.wall("enumerate", "prompts/system.md").returncode)
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        refused = self.wall("close")
+        self.assertEqual(1, refused.returncode)
+        self.assertEqual("", refused.stderr)
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            f.write("not json")
+        unreadable = self.wall("close")
+        self.assertEqual(2, unreadable.returncode)
+        self.assertEqual("", unreadable.stdout)
 
     def test_map_of_the_wrong_shape_refuses_instead_of_raising(self):
         wrong_maps = [

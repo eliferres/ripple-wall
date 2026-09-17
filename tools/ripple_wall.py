@@ -39,8 +39,9 @@ def die(message, code=1):
 
 
 def refuse(message):
-    """State the wall cannot trust stops it: one line on stderr, exit 2."""
-    print("RIPPLE WALL: " + message, file=sys.stderr)
+    """A wall that cannot run says why in one line on stderr and exits 2: wrong usage,
+    or state it cannot trust. Exit 1 is reserved for a refusal you can answer."""
+    print(message, file=sys.stderr)
     sys.exit(2)
 
 
@@ -58,7 +59,7 @@ def read_json(path, fallback):
     except FileNotFoundError:
         return fallback
     except (OSError, ValueError) as e:
-        refuse("cannot read %s (%s). Refusing to guess what it held." % (path, e))
+        refuse("RIPPLE WALL: cannot read %s (%s). Refusing to guess what it held." % (path, e))
 
 
 def read_batch():
@@ -71,7 +72,7 @@ def read_batch():
         return None
     missing = [k for k in BATCH_KEYS if not isinstance(batch, dict) or k not in batch]
     if missing:
-        refuse("%s is not a batch: no %s. Refusing to read it as no batch open."
+        refuse("RIPPLE WALL: %s is not a batch: no %s. Refusing to read it as no batch open."
                % (BATCH, ", ".join(missing)))
     return batch
 
@@ -80,7 +81,7 @@ def read_blocked():
     blocked = read_json(BLOCKED, [])
     if not isinstance(blocked, list) or any(
             not isinstance(item, dict) or not {"key", "line", "ts"} <= set(item) for item in blocked):
-        refuse("%s is not a list of blocked items. Refusing to read it as nothing blocked." % BLOCKED)
+        refuse("RIPPLE WALL: %s is not a list of blocked items. Refusing to read it as nothing blocked." % BLOCKED)
     return blocked
 
 
@@ -100,11 +101,11 @@ def load_map():
     """The map, checked for the shape the whole tool reads. It is hand-written, so a
     missing key is an ordinary mistake, and guessing past it is what this tool refuses."""
     if not os.path.exists(MAP):
-        refuse("no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP." % MAP)
+        refuse("RIPPLE WALL: no map at %s. Run from the directory holding ripple-map.json, or set RIPPLE_MAP." % MAP)
     ripple_map = read_json(MAP, None)
     bad = map_fault(ripple_map)
     if bad:
-        refuse("%s is not a map: %s. Refusing to guard a setup it cannot read." % (MAP, bad))
+        refuse("RIPPLE WALL: %s is not a map: %s. Refusing to guard a setup it cannot read." % (MAP, bad))
     return ripple_map
 
 
@@ -180,7 +181,7 @@ def active_surfaces(ripple_map, batch):
 
 def cmd_open(ripple_map, argv):
     if not argv:
-        die("usage: %s open <changed-path>" % PROG)
+        refuse("usage: %s open <changed-path>" % PROG)
     path = resolve_user(argv[0])
     triggered = surfaces_for(ripple_map, path)
     batch = read_batch()
@@ -228,7 +229,7 @@ def cmd_status(ripple_map, argv):
 
 def cmd_waive(ripple_map, argv):
     if len(argv) < 2:
-        die('usage: %s waive <key> "unchanged because ..."' % PROG)
+        refuse('usage: %s waive <key> "unchanged because ..."' % PROG)
     key, line = argv[0], argv[1].strip()
     if line.startswith(WAIVER_PREFIX) or line.startswith(BLOCKED_PREFIX):
         if len(line) < WAIVER_MIN:
@@ -252,7 +253,7 @@ def cmd_waive(ripple_map, argv):
 
 def cmd_enumerate(ripple_map, argv):
     if not argv:
-        die("usage: %s enumerate <path> [path ...]" % PROG)
+        refuse("usage: %s enumerate <path> [path ...]" % PROG)
     surfaces = sorted({s for p in argv for s in surfaces_for(ripple_map, resolve_user(p))})
     if not surfaces:
         print("ripple: none of those paths trigger a mapped surface.")
@@ -318,7 +319,7 @@ def main(argv=None):
         print("ripple-wall %s" % __version__)
         return 0
     if command not in COMMANDS:
-        die("%s: unknown command %r. Try: %s" % (PROG, command, " / ".join(COMMANDS)), 2)
+        refuse("%s: unknown command %r. Try: %s" % (PROG, command, " / ".join(COMMANDS)))
     return COMMANDS[command](load_map(), argv[1:])
 
 
