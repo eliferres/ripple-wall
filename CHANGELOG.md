@@ -7,6 +7,7 @@
 
 ### Fixed
 - Fixed a corrupt or unreadable batch file reading as "no open batch", which let `close` pass: every command that reads the batch, the blocked list, or the map now exits 2 with one line on stderr naming the file and the parse error.
+- Fixed usage errors exiting 1 on stdout while an unknown subcommand exited 2: wrong usage now always prints one line on stderr and exits 2, matching the exit-code table the README now carries.
 - Fixed a hand-written map of the wrong shape crashing with a Python traceback: a map with no `surfaces` object, a surface missing its `triggers` or `strings`, or a string missing `id`, `path` or `why` is now refused with one line on stderr naming what is missing, exit 2.
 - Fixed the tool's guidance lines naming `./ripple-wall.sh`, a file an installed user's project does not have: run from a clone they still say `./ripple-wall.sh`, and run as the installed command they say `ripple-wall`.
 - Fixed the demo transcript and the terminal picture in the README, which abridged the tool's output and left out the file edits the walkthrough makes, so the picture showed results no visible command produced. Both are now generated from a real run and checked by the test suite.
