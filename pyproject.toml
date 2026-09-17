@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ripple-wall"
+dynamic = ["version"]
+description = "A JSON map of what depends on what, and a close command that refuses until every copy moves."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Eli Ferres" }]
+
+[project.urls]
+Source = "https://github.com/eliferres/ripple-wall"
+Changelog = "https://github.com/eliferres/ripple-wall/blob/main/CHANGELOG.md"
+
+[project.scripts]
+ripple-wall = "ripple_wall:main"
+
+[tool.setuptools]
+py-modules = ["ripple_wall"]
+package-dir = { "" = "tools" }
+
+[tool.setuptools.dynamic]
+version = { attr = "ripple_wall.__version__" }
