@@ -1,17 +1,42 @@
 [
   {
+    "cmd": "printf -- '- Name the owner of every file you change.\\n' >> demo/prompts/system-prompt.md",
+    "out": "",
+    "status": 0
+  },
+  {
     "cmd": "./ripple-wall.sh open demo/prompts/system-prompt.md",
-    "out": "RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (system-prompt).\n  Next: ./ripple-wall.sh close",
+    "out": "RIPPLE BATCH OPEN — demo/prompts/system-prompt.md touched (system-prompt).\n  Every mapped string must move or carry a written reason before this batch closes.\n  Next: ./ripple-wall.sh close",
+    "status": 0
+  },
+  {
+    "cmd": "printf -- '- Name the owner of every file you change.\\n' >> demo/docs/agents.md",
+    "out": "",
+    "status": 0
+  },
+  {
+    "cmd": "printf -- '  - Name the owner of every file you change.\\n' >> demo/agents/planner.yaml",
+    "out": "",
     "status": 0
   },
   {
     "cmd": "./ripple-wall.sh close",
-    "out": "RIPPLE WALL: batch CANNOT close — 2 mapped string(s) unaccounted for:\n  MISSING system-prompt/readme-rules — demo/README.md\n  MISSING system-prompt/reviewer-config — demo/agents/reviewer.yaml",
+    "out": "RIPPLE WALL: batch CANNOT close — 2 mapped string(s) unaccounted for:\n  MISSING system-prompt/readme-rules — demo/README.md (the README mirrors the house rules for humans; a stale mirror is what new contributors read first)\n  MISSING system-prompt/reviewer-config — demo/agents/reviewer.yaml (the reviewer pins its own copy of the rules it checks against)\nUpdate each one, or answer it: ./ripple-wall.sh waive <key> \"unchanged because ...\"",
     "status": 1
   },
   {
-    "cmd": "./ripple-wall.sh waive system-prompt/reviewer-config \"unchanged because the reviewer only ever sees diffs, never file ownership\" && ./ripple-wall.sh close",
-    "out": "ripple: answer recorded for system-prompt/reviewer-config\nRIPPLE WALL: batch CLOSED clean — 3 moved, 1 answered, across 1 surface(s).",
+    "cmd": "printf -- '- Name the owner of every file you change.\\n' >> demo/README.md",
+    "out": "",
+    "status": 0
+  },
+  {
+    "cmd": "./ripple-wall.sh waive system-prompt/reviewer-config \"unchanged because the reviewer only ever sees diffs, never file ownership\"",
+    "out": "ripple: answer recorded for system-prompt/reviewer-config",
+    "status": 0
+  },
+  {
+    "cmd": "./ripple-wall.sh close",
+    "out": "RIPPLE WALL: batch CLOSED clean — 3 moved, 1 answered, across 1 surface(s).",
     "status": 0
   }
 ]

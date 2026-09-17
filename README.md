@@ -6,7 +6,7 @@ No dependencies, no daemon.
 
 ![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
 
-<img src="demo/terminal.svg" width="660" alt="Terminal session showing ripple-wall refusing to close a batch until two unaccounted strings move or are answered, then closing clean.">
+<img src="demo/terminal.svg" width="660" alt="Terminal session showing a house rule added to the shared system prompt, ripple-wall refusing to close the batch until two unaccounted strings move or are answered, then closing clean.">
 
 ## Quick start
 
