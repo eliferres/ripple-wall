@@ -24,6 +24,10 @@ BATCH = os.path.join(STATE, "batch.json")
 BLOCKED = os.path.join(STATE, "blocked.json")
 RECEIPTS = os.path.join(STATE, "receipts.jsonl")
 
+# The wrapper exports its own $0 so a clone keeps saying ./ripple-wall.sh; installed, the
+# console script's own name is what a reader can actually run.
+PROG = os.environ.get("RIPPLE_PROG") or os.path.basename(sys.argv[0])
+
 WAIVER_PREFIX = "unchanged because "
 BLOCKED_PREFIX = "blocked-on-owner:"
 WAIVER_MIN = 40  # a reason short enough to type without thinking is not a reason
@@ -153,7 +157,7 @@ def active_surfaces(ripple_map, batch):
 
 def cmd_open(ripple_map, argv):
     if not argv:
-        die("usage: ripple-wall.sh open <changed-path>")
+        die("usage: %s open <changed-path>" % PROG)
     path = resolve_user(argv[0])
     triggered = surfaces_for(ripple_map, path)
     batch = read_batch()
@@ -171,7 +175,7 @@ def cmd_open(ripple_map, argv):
         log("open", trigger=path, surfaces=triggered)
         print("RIPPLE BATCH OPEN — %s touched (%s)." % (short(path), ", ".join(triggered)))
         print("  Every mapped string must move or carry a written reason before this batch closes.")
-        print("  Next: ./ripple-wall.sh close")
+        print("  Next: %s close" % PROG)
     elif path not in batch["triggers"] and triggered:
         batch["triggers"].append(path)
         log("extend", trigger=path, surfaces=triggered)
@@ -188,7 +192,7 @@ def cmd_status(ripple_map, argv):
         surfaces = active_surfaces(ripple_map, batch)
         print("RIPPLE BATCH OPEN since %s — surfaces: %s" % (batch["opened"], ", ".join(surfaces)))
         print("  triggers: %d   answers: %d" % (len(batch["triggers"]), len(batch["answers"])))
-        print("  next: ./ripple-wall.sh close   (a refusal names exactly what is missing)")
+        print("  next: %s close   (a refusal names exactly what is missing)" % PROG)
     else:
         print("ripple: no open batch.")
     blocked = read_blocked()
@@ -201,7 +205,7 @@ def cmd_status(ripple_map, argv):
 
 def cmd_waive(ripple_map, argv):
     if len(argv) < 2:
-        die('usage: ripple-wall.sh waive <key> "unchanged because ..."')
+        die('usage: %s waive <key> "unchanged because ..."' % PROG)
     key, line = argv[0], argv[1].strip()
     if line.startswith(WAIVER_PREFIX) or line.startswith(BLOCKED_PREFIX):
         if len(line) < WAIVER_MIN:
@@ -225,7 +229,7 @@ def cmd_waive(ripple_map, argv):
 
 def cmd_enumerate(ripple_map, argv):
     if not argv:
-        die("usage: ripple-wall.sh enumerate <path> [path ...]")
+        die("usage: %s enumerate <path> [path ...]" % PROG)
     surfaces = sorted({s for p in argv for s in surfaces_for(ripple_map, resolve_user(p))})
     if not surfaces:
         print("ripple: none of those paths trigger a mapped surface.")
@@ -261,7 +265,7 @@ def cmd_close(ripple_map, argv):
         print("RIPPLE WALL: batch CANNOT close — %d mapped string(s) unaccounted for:" % len(missing))
         for key, path, why in missing:
             print("  MISSING %s — %s (%s)" % (key, path, why))
-        print('Update each one, or answer it: ./ripple-wall.sh waive <key> "unchanged because ..."')
+        print('Update each one, or answer it: %s waive <key> "unchanged because ..."' % PROG)
         log("close-refused", label=label, missing=[k for k, _, _ in missing])
         return 1
     os.remove(BATCH)
@@ -291,7 +295,7 @@ def main(argv=None):
         print("ripple-wall %s" % __version__)
         return 0
     if command not in COMMANDS:
-        die("ripple-wall: unknown command %r. Try: %s" % (command, " / ".join(COMMANDS)), 2)
+        die("%s: unknown command %r. Try: %s" % (PROG, command, " / ".join(COMMANDS)), 2)
     return COMMANDS[command](load_map(), argv[1:])
 
 

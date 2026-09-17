@@ -7,4 +7,5 @@
 #   waive <key> "..."    answer a string with a written reason, or block it on its owner
 #   close [label]        the fail-closed gate; refuses and names what is missing
 set -eu
+export RIPPLE_PROG="$0"   # so the wall's hints name the way it was actually run
 exec python3 "$(cd "$(dirname "$0")" && pwd)/tools/ripple_wall.py" "$@"

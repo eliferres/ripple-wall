@@ -174,6 +174,39 @@ class WallTest(unittest.TestCase):
                                 env=env, capture_output=True, text=True)
         self.assertIn("RIPPLE BATCH OPEN", result.stdout)
 
+    def test_clone_invocation_still_names_the_shell_wrapper(self):
+        clone = os.path.join(self.dir, "clone")
+        shutil.copytree(REPO, clone, ignore=shutil.ignore_patterns(".git", "__pycache__", ".ripple"))
+        env = dict(os.environ, RIPPLE_MAP=os.path.join(self.dir, "map.json"))
+        opened = subprocess.run(["bash", "./ripple-wall.sh", "open", "../prompts/system.md"],
+                                cwd=clone, env=env, capture_output=True, text=True)
+        self.assertIn("  Next: ./ripple-wall.sh close", opened.stdout)
+        refused = subprocess.run(["bash", "./ripple-wall.sh", "close"],
+                                 cwd=clone, env=env, capture_output=True, text=True)
+        self.assertIn('answer it: ./ripple-wall.sh waive <key>', refused.stdout)
+
+    def test_installed_invocation_names_the_installed_command(self):
+        launcher = os.path.join(self.dir, "ripple-wall")
+        with open(launcher, "w") as f:
+            f.write("#!/usr/bin/env python3\n"
+                    "import sys\n"
+                    "sys.path.insert(0, %r)\n"
+                    "from ripple_wall import main\n"
+                    "sys.exit(main())\n" % os.path.join(REPO, "tools"))
+        os.chmod(launcher, 0o755)
+        env = dict(os.environ, RIPPLE_MAP=os.path.join(self.dir, "map.json"))
+        env.pop("RIPPLE_PROG", None)
+        opened = subprocess.run([launcher, "open", "prompts/system.md"], cwd=self.dir,
+                                env=env, capture_output=True, text=True)
+        self.assertIn("  Next: ripple-wall close", opened.stdout)
+        refused = subprocess.run([launcher, "close"], cwd=self.dir, env=env,
+                                 capture_output=True, text=True)
+        self.assertIn('answer it: ripple-wall waive <key>', refused.stdout)
+        usage = subprocess.run([launcher, "enumerate"], cwd=self.dir, env=env,
+                               capture_output=True, text=True)
+        self.assertIn("usage: ripple-wall enumerate", usage.stdout)
+        self.assertNotIn(".sh", usage.stdout)
+
     def test_corrupt_batch_file_refuses_close(self):
         self.append("prompts/system.md", "- cite files\n")
         self.wall("open", "prompts/system.md")
