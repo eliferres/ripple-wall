@@ -30,61 +30,20 @@ cd ripple-wall
 
 That prints every file a change to the demo system prompt must drag with
 it. Point `ripple-map.json` at your own files and it prints yours. The
-[walkthrough](#the-walkthrough) below runs the full loop (open, refuse,
-fix, waive, close) against the demo setup in this repo.
+walkthrough below, [a batch from open to close](#a-batch-from-open-to-close),
+runs the full loop (open, refuse, fix, waive, close) against the demo
+setup in this repo.
 
-## The four ideas
+Everything is in one place: `ripple-wall.sh` is the front door (`open`,
+`status`, `enumerate`, `waive`, `close`) over `tools/ripple_wall.py`,
+which is the wall itself; `ripple-map.json` is the map; `demo/` is a
+small fictional agent setup so the walkthrough runs on real files;
+`hooks/` holds optional auto-open recipes for Claude Code and file
+watchers; `tests/` runs real files in temp directories, including the
+walkthrough below and the demo transcript; and `.ripple/`, gitignored,
+holds the batch, the blocked items and the receipts log.
 
-**The map is the whole design.** `ripple-map.json` names *surfaces*
-(files other files quietly depend on) and, under each, the *strings*
-that must move with it. Writing the map is the work; the tool is the
-part that never forgets it.
-
-**The batch opens on the trigger, not on the commit.** The moment a
-mapped file is touched, `open` snapshots every mapped file's hash. From
-then on the wall knows, per string, whether it actually moved.
-
-**Fail-closed, and specific about it.** `close` exits non-zero and names
-each unaccounted string, its path, and why the map says it matters. No
-summary counts, no "some files may need review."
-
-**A waiver is a sentence, not a flag.** A string can be closed without
-changing, but only behind `unchanged because ...` or
-`blocked-on-owner: ...`, each of at least 40 characters: the blocked
-form lets the batch close and keeps the item listed in `status` from
-then on.
-
-## The map format, verbatim
-
-One surface from `ripple-map.json`, unedited. That is the whole schema:
-
-```json
-{
- "version": 1,
- "surfaces": {
-  "system-prompt": {
-   "_what": "The agent house rules. Every agent config and every doc that repeats a rule goes stale the moment this changes.",
-   "triggers": ["demo/prompts/system-prompt.md"],
-   "strings": [
-    {
-     "id": "readme-rules",
-     "path": "demo/README.md",
-     "why": "the README mirrors the house rules for humans; a stale mirror is what new contributors read first"
-    }
-   ]
-  }
- }
-}
-```
-
-`triggers` are exact paths, directories, or globs; a write to any of
-them opens the batch. Every `path` is relative to the map file, so a
-clone works from any directory (`~` and absolute paths also work, for
-maps that guard files outside the repo). The `why` is not decoration:
-it is what the refusal prints back at you months later, and a string
-without a real one is a string nobody will honor.
-
-## The walkthrough
+## A batch from open to close
 
 Real commands against the demo setup in this repo. Copy-paste the whole
 thing; it works from a fresh clone.
@@ -139,19 +98,58 @@ someone asks why that file was skipped.
 
 Reset the demo when you are done: `git checkout demo`.
 
-## What is in the box
+## The design
 
-| Path | Role |
-|---|---|
-| `ripple-wall.sh` | The front door. `open` / `status` / `enumerate` / `waive` / `close`. |
-| `ripple-map.json` | The map: surfaces, their triggers, and every string attached. |
-| `tools/ripple_wall.py` | The wall itself, stdlib only. |
-| `demo/` | A small fictional agent setup so the walkthrough runs on real files. |
-| `hooks/` | Optional auto-open recipes: a Claude Code hook and a file watcher. |
-| `tests/test_ripple_wall.py` | Real fixtures in temp dirs, including the walkthrough above. |
-| `.ripple/` | Batch state, blocked items, and the receipts log. Gitignored. |
+**The map is the whole design.** `ripple-map.json` names *surfaces*
+(files other files quietly depend on) and, under each, the *strings*
+that must move with it. Writing the map is the work; the tool is the
+part that never forgets it.
 
-## What the wall enforces
+**The batch opens on the trigger, not on the commit.** The moment a
+mapped file is touched, `open` snapshots every mapped file's hash. From
+then on the wall knows, per string, whether it actually moved.
+
+**Fail-closed, and specific about it.** `close` exits non-zero and names
+each unaccounted string, its path, and why the map says it matters. No
+summary counts, no "some files may need review."
+
+**A waiver is a sentence, not a flag.** A string can be closed without
+changing, but only behind `unchanged because ...` or
+`blocked-on-owner: ...`, each of at least 40 characters: the blocked
+form lets the batch close and keeps the item listed in `status` from
+then on.
+
+## Writing the map
+
+One surface from `ripple-map.json`, unedited. That is the whole schema:
+
+```json
+{
+ "version": 1,
+ "surfaces": {
+  "system-prompt": {
+   "_what": "The agent house rules. Every agent config and every doc that repeats a rule goes stale the moment this changes.",
+   "triggers": ["demo/prompts/system-prompt.md"],
+   "strings": [
+    {
+     "id": "readme-rules",
+     "path": "demo/README.md",
+     "why": "the README mirrors the house rules for humans; a stale mirror is what new contributors read first"
+    }
+   ]
+  }
+ }
+}
+```
+
+`triggers` are exact paths, directories, or globs; a write to any of
+them opens the batch. Every `path` is relative to the map file, so a
+clone works from any directory (`~` and absolute paths also work, for
+maps that guard files outside the repo). The `why` is not decoration:
+it is what the refusal prints back at you months later, and a string
+without a real one is a string nobody will honor.
+
+## What close refuses
 
 Five refusals, each guarding a way config drift actually happens:
 
@@ -168,7 +166,13 @@ Five refusals, each guarding a way config drift actually happens:
 
 Anything the wall cannot verify, it refuses to guess about. Malformed
 input dies loudly everywhere; `close` is the only command that can exit
-non-zero on a clean, well-formed invocation.
+non-zero on a clean invocation over sound state.
+
+| Exit | What it means |
+|---|---|
+| 0 | The batch closed, or the command had nothing to refuse. |
+| 1 | `close` refused a batch, or a waiver was rejected. |
+| 2 | The wall could not trust what it read: no map, or a map, batch file or blocked list that will not parse or is not the shape the wall writes. It never treats an unreadable file as an empty one. |
 
 ## Why a hand-written map
 
