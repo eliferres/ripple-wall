@@ -209,7 +209,8 @@ they never open a batch:
 ```
 
 Entries are written like `triggers`: exact paths, directories, or
-globs, relative to the map.
+globs, relative to the map. A `*` in a glob also crosses folders, so
+`hooks/*.bak` excludes `hooks/sub/x.bak` as well.
 
 ## What close refuses
 
