@@ -218,10 +218,16 @@ list that is missing, will not parse, or is not the shape the wall
 reads. It is never treated as an empty one, and it stops every command
 that reads it.
 
+A refusal names only what is missing. To read the whole batch at once,
+`./ripple-wall.sh close --all` lists every string the batch asks for
+with its state (moved, answered, blocked or MISSING) and closes
+nothing. It reads the same verdict `close` acts on and exits the way
+`close` would, so it also works as a dry run in a script.
+
 | Exit | What it means | Printed on |
 |---|---|---|
-| 0 | The command did what was asked: a batch opened, a string was answered, a batch closed. | stdout |
-| 1 | `close` refused, naming every unaccounted string, or there was no batch to close or answer into, or a waiver was rejected. Answer it and run again. | stdout |
+| 0 | The command did what was asked: a batch opened, a string was answered, a batch closed, or `close --all` found nothing missing. | stdout |
+| 1 | `close` refused, naming every unaccounted string (or `close --all` found one), or there was no batch to close or answer into, or a waiver or attest was rejected. Answer it and run again. | stdout |
 | 2 | The wall could not run at all: wrong usage, an unknown subcommand, or state it cannot trust. One line, and nothing is written. | stderr |
 
 ## Why a hand-written map

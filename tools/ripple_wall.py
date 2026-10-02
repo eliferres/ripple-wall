@@ -349,41 +349,55 @@ def cmd_enumerate(ripple_map, argv):
     return 0
 
 
+def string_states(ripple_map, batch):
+    """(key, state, detail) for every string the open batch asks for, where state is moved,
+    answered, blocked or MISSING. close and close --all read this one verdict, so the listing
+    can never disagree with the close it previews."""
+    states = []
+    for key, kind, path, why in strings_for(ripple_map, batch["triggers"]):
+        answer = batch["answers"].get(key)
+        if kind == "file":
+            current = digest(path)
+            snap = batch["snapshot"].get(path)
+            if current is None and snap is not None and not answer:
+                states.append((key, "MISSING", "%s — the file has VANISHED since the batch opened (%s)"
+                               % (short(path), why)))
+                continue
+            if current is not None and current != snap:
+                states.append((key, "moved", short(path)))
+                continue
+        if answer and answer.startswith(BLOCKED_PREFIX):
+            states.append((key, "blocked", answer))
+        elif answer:
+            states.append((key, "answered", answer))
+        elif kind == "attest":
+            states.append((key, "MISSING", "needs an attest: %s (%s)" % (path, why)))
+        else:
+            states.append((key, "MISSING", "%s (%s)" % (short(path), why)))
+    return states
+
+
 def cmd_close(ripple_map, argv):
-    label = argv[0] if argv else ""
+    listing = "--all" in argv
+    rest = [a for a in argv if a != "--all"]
+    label = rest[0] if rest else ""
     batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch.")
     surfaces = active_surfaces(ripple_map, batch)
-    moved, answered, blocked, missing = [], [], [], []
-    for key, kind, path, why in strings_for(ripple_map, batch["triggers"]):
-        answer = batch["answers"].get(key)
-        if kind == "attest":
-            if not answer:
-                missing.append((key, "needs an attest: " + path, why))
-            elif answer.startswith(BLOCKED_PREFIX):
-                blocked.append((key, answer))
-            else:
-                answered.append((key, answer))
-            continue
-        current = digest(path)
-        snap = batch["snapshot"].get(path)
-        if current is None and snap is not None and not answer:
-            missing.append((key, short(path) + " — the file has VANISHED since the batch opened", why))
-        elif current is not None and current != snap:
-            moved.append(key)
-        elif answer and answer.startswith(BLOCKED_PREFIX):
-            blocked.append((key, answer))
-        elif answer:
-            answered.append((key, answer))
-        else:
-            missing.append((key, short(path), why))
+    states = string_states(ripple_map, batch)
+    if listing:
+        return list_states(states, surfaces)
+    moved = [k for k, state, _ in states if state == "moved"]
+    answered = [(k, d) for k, state, d in states if state == "answered"]
+    blocked = [(k, d) for k, state, d in states if state == "blocked"]
+    missing = [(k, d) for k, state, d in states if state == "MISSING"]
     if missing:
         print("RIPPLE WALL: batch CANNOT close — %d mapped string(s) unaccounted for:" % len(missing))
-        for key, path, why in missing:
-            print("  MISSING %s — %s (%s)" % (key, path, why))
+        for key, detail in missing:
+            print("  MISSING %s — %s" % (key, detail))
         print('Update each one, or answer it: %s waive <key> "unchanged because ..."' % PROG)
-        log("close-refused", label=label, missing=[k for k, _, _ in missing])
+        log("close-refused", label=label, missing=[k for k, _ in missing])
         return 1
     os.remove(BATCH)
     log("closed", label=label, surfaces=surfaces, moved=moved,
@@ -398,6 +412,22 @@ def cmd_close(ripple_map, argv):
         return 0
     print("RIPPLE WALL: batch CLOSED clean — %d moved, %d answered, across %d surface(s)."
           % (len(moved), len(answered), len(surfaces)))
+    return 0
+
+
+
+def list_states(states, surfaces):
+    """close --all: every string and where it stands, so the whole batch can be read at
+    once instead of one refusal at a time. Writes nothing; exits as close would."""
+    print("RIPPLE BATCH LISTING — %d mapped string(s) across %d surface(s): %s. This lists; it closes nothing."
+          % (len(states), len(surfaces), ", ".join(surfaces)))
+    for key, state, detail in states:
+        print("  %-9s %s — %s" % (state, key, detail))
+    missing = sum(1 for _, state, _ in states if state == "MISSING")
+    if missing:
+        print("%d MISSING: close would refuse." % missing)
+        return 1
+    print("Nothing missing: close would pass.")
     return 0
 
 

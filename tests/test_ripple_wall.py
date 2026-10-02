@@ -319,6 +319,38 @@ class WallTest(TempSetup):
             self.assertIn(os.path.join(self.dir, "map.json"), lines[0])
             self.assertIn("Expecting value", lines[0])
 
+    def test_close_all_lists_every_string_and_closes_nothing(self):
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        self.append("docs/agents.md", "- cite files\n")
+        listing = self.wall("close", "--all")
+        self.assertEqual(1, listing.returncode)
+        self.assertIn("closes nothing", listing.stdout)
+        self.assertRegex(listing.stdout, r"moved +prompt/docs")
+        self.assertRegex(listing.stdout, r"MISSING +prompt/planner")
+        self.assertIn("close would refuse", listing.stdout)
+        self.assertIn("RIPPLE BATCH OPEN", self.wall("status").stdout)
+        self.wall("waive", "prompt/planner", GOOD_WAIVER)
+        listing = self.wall("close", "--all")
+        self.assertEqual(0, listing.returncode)
+        self.assertRegex(listing.stdout, r"answered +prompt/planner — " + GOOD_WAIVER)
+        self.assertIn("close would pass", listing.stdout)
+        self.assertIn("RIPPLE BATCH OPEN", self.wall("status").stdout)
+        self.assertEqual(0, self.wall("close").returncode)
+
+    def test_close_all_shows_blocked_and_vanished_strings(self):
+        self.wall("open", "prompts/system.md")
+        os.remove(os.path.join(self.dir, "docs/agents.md"))
+        self.wall("waive", "prompt/planner", "blocked-on-owner: only the owner can reword the rule")
+        listing = self.wall("close", "--all").stdout
+        self.assertRegex(listing, r"blocked +prompt/planner")
+        self.assertRegex(listing, r"MISSING +prompt/docs — .*VANISHED")
+
+    def test_close_all_without_a_batch_is_an_error(self):
+        result = self.wall("close", "--all")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("no open batch", result.stdout)
+
 
 GOOD_ATTEST = "done: pasted the new rule into the hosted chat settings"
 

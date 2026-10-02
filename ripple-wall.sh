@@ -7,6 +7,7 @@
 #   waive <key> "..."    answer a string with a written reason, or block it on its owner
 #   attest <key> "done: ..."  close a string that has no file, saying what was done
 #   close [label]        the fail-closed gate; refuses and names what is missing
+#   close --all          list every string of the open batch with its state; closes nothing
 set -eu
 export RIPPLE_PROG="$0"   # so the wall's hints name the way it was actually run
 exec python3 "$(cd "$(dirname "$0")" && pwd)/tools/ripple_wall.py" "$@"
