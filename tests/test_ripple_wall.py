@@ -516,7 +516,7 @@ class ConditionalStringTest(TempSetup):
 
     def test_malformed_condition_is_a_map_error(self):
         for when in ("deploy", {"mentions": True}, {"trigger_matches": "hooks/deploy-*.sh"},
-                     {"mentions_trigger": "yes"}):
+                     {"mentions_trigger": "yes"}, {}, {"trigger_matches": []}, {"trigger_matches": [""]}):
             broken = json.loads(json.dumps(self.MAP))
             broken["surfaces"]["hooks"]["strings"][1]["when"] = when
             with open(os.path.join(self.dir, "map.json"), "w") as f:

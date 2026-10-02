@@ -149,9 +149,11 @@ def when_fault(when, kind):
     misreads would silently stop asking a question, so anything unexpected is refused."""
     if not isinstance(when, dict) or not when or set(when) - {"trigger_matches", "mentions_trigger"}:
         return 'when must be an object holding trigger_matches and/or mentions_trigger'
+    # An empty list matches no trigger, which would switch the string off for good.
     if "trigger_matches" in when and not (
-            isinstance(when["trigger_matches"], list) and all(isinstance(p, str) for p in when["trigger_matches"])):
-        return "when.trigger_matches must be a list of paths or globs"
+            isinstance(when["trigger_matches"], list) and when["trigger_matches"]
+            and all(isinstance(p, str) and p for p in when["trigger_matches"])):
+        return "when.trigger_matches must be a non-empty list of paths or globs"
     if "mentions_trigger" in when:
         if when["mentions_trigger"] is not True:
             return "when.mentions_trigger must be true"

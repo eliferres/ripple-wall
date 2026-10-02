@@ -5,7 +5,7 @@
 ### Added
 - Added `exclude_generated` to the map: backups, caches and build output that sit inside a trigger directory no longer open a batch.
 - Added `close --all`, which lists every string the open batch asks for with its state (moved, answered, blocked or missing), closes nothing, and exits 1 when `close` would refuse.
-- Added `when` conditions on map strings: `mentions_trigger` asks a string only when its file names the changed file, and `trigger_matches` only when the change matches given paths or globs, so a directory surface stops asking every file about copies that only concern a few.
+- Added `when` conditions on map strings: `mentions_trigger` asks a string only when its file names the changed file, and `trigger_matches` only when the change matches given paths or globs, so a directory surface stops asking every file about copies that only concern a few; an empty or malformed condition is refused as a map error.
 - Added attest strings for copies that are not files, such as rules pasted into a hosted dashboard: a map entry with `"kind": "attest"` and a `where` closes only on `attest <key> "done: ..."`, a sentence of at least 40 characters.
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
