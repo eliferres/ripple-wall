@@ -5,6 +5,9 @@ Change the system prompt, the model roster, or the rules file in an agent setup 
 No dependencies, no daemon.
 
 ![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
+![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing a house rule added to the shared system prompt, ripple-wall refusing to close the batch until two unaccounted strings move or are answered, then closing clean.">
 

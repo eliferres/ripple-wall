@@ -18,6 +18,7 @@
 - Fixed a batch file that parses but is not a batch (`{}`, `[]`, `null`, or an object missing the keys the wall writes) reading as "no open batch", and the same check for the blocked list: both now exit 2 with one line on stderr.
 
 ### Changed
+- Changed the README badge row to show the license, the lowest supported Python and that there are no dependencies, beside the CI status.
 - Changed the demo picture to a smaller type size, so its rows are re-rendered at the width the session actually prints.
 - Changed the install section to say that an editable install reads the clone's own map wherever it runs, and how to point it elsewhere.
 - Changed the README shape: the walkthrough now sits directly after Quick start as "A batch from open to close", the map section is "Writing the map", the refusals section is "What close refuses" and ends with an exit-code table, and the file tour folds into one paragraph under Quick start.
