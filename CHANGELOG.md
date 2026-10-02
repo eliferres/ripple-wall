@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added attest strings for copies that are not files, such as rules pasted into a hosted dashboard: a map entry with `"kind": "attest"` and a `where` closes only on `attest <key> "done: ..."`, a sentence of at least 40 characters.
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
 ### Fixed

@@ -38,7 +38,7 @@ runs the full loop (open, refuse, fix, waive, close) against the demo
 setup in this repo.
 
 Everything is in one place: `ripple-wall.sh` is the front door (`open`,
-`status`, `enumerate`, `waive`, `close`) over `tools/ripple_wall.py`,
+`status`, `enumerate`, `waive`, `attest`, `close`) over `tools/ripple_wall.py`,
 which is the wall itself; `ripple-map.json` is the map; `demo/` is a
 small fictional agent setup so the walkthrough runs on real files;
 `hooks/` holds optional auto-open recipes for Claude Code and file
@@ -152,9 +152,27 @@ maps that guard files outside the repo). The `why` is not decoration:
 it is what the refusal prints back at you months later, and a string
 without a real one is a string nobody will honor.
 
+Some copies are not files: the rules pasted into a hosted chat
+dashboard, a model name set in a vendor console. Give that string
+`"kind": "attest"` and a `where` in place of `path`:
+
+```json
+{
+ "id": "hosted-rules",
+ "kind": "attest",
+ "where": "the rules pasted into the hosted assistant's settings",
+ "why": "the hosted assistant keeps its own copy of the house rules"
+}
+```
+
+The wall has nothing to hash, so the string closes only on
+`./ripple-wall.sh attest <key> "done: ..."`, a sentence of at least 40
+characters saying what was done and where. `waive` answers it the same
+way it answers a file.
+
 ## What close refuses
 
-Six refusals, each guarding a way config drift actually happens. Five
+Seven refusals, each guarding a way config drift actually happens. Six
 are about the answer you give:
 
 1. A mapped string that did not change and carries no answer blocks the
@@ -167,8 +185,11 @@ are about the answer you give:
    the valid keys printed. A typo must never look like an answer.
 5. `blocked-on-owner:` lets the batch close but never clears the item.
    It stays in `status`, with its date, until you remove it by hand.
+6. An attest that does not start `done: `, runs under 40 characters, or
+   names a file string is refused. A file string closes by changing,
+   because the wall can check that; it cannot check a sentence.
 
-The sixth is state the wall cannot trust: a map, batch file or blocked
+The seventh is state the wall cannot trust: a map, batch file or blocked
 list that is missing, will not parse, or is not the shape the wall
 reads. It is never treated as an empty one, and it stops every command
 that reads it.
@@ -201,7 +222,8 @@ blocks anything is a checker that never protected anything.
   it changed *correctly*: a whitespace edit satisfies a string. A file
   that vanishes mid-batch is refused as missing, not counted as moved.
 - Single repo, single working tree. Strings living in another repo or in
-  a hosted dashboard can only be tracked as a written answer.
+  a hosted dashboard are attest strings: the wall records the sentence
+  and cannot check it.
 - State is local to `.ripple/`. Two people running batches on the same
   checkout will step on each other.
 - Exercised on macOS and Linux with bash and Python 3.9+. No Windows

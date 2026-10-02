@@ -42,17 +42,22 @@ FIXTURE_FILES = {
 GOOD_WAIVER = "unchanged because the planner never reads that rule"
 
 
-class WallTest(unittest.TestCase):
+class TempSetup(unittest.TestCase):
+    """A fresh copy of MAP and FILES in a temp directory for every test."""
+
+    MAP = FIXTURE_MAP
+    FILES = FIXTURE_FILES
+
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="ripple-test-")
         self.addCleanup(shutil.rmtree, self.dir, True)
-        for name, body in FIXTURE_FILES.items():
+        for name, body in self.FILES.items():
             path = os.path.join(self.dir, name)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as f:
                 f.write(body)
         with open(os.path.join(self.dir, "map.json"), "w") as f:
-            json.dump(FIXTURE_MAP, f)
+            json.dump(self.MAP, f)
 
     def wall(self, *args):
         env = dict(os.environ, RIPPLE_MAP=os.path.join(self.dir, "map.json"))
@@ -63,6 +68,8 @@ class WallTest(unittest.TestCase):
         with open(os.path.join(self.dir, name), "a") as f:
             f.write(text)
 
+
+class WallTest(TempSetup):
     def test_enumerate_lists_exactly_the_mapped_strings(self):
         out = self.wall("enumerate", "prompts/system.md").stdout
         self.assertIn("prompt/docs", out)
@@ -311,6 +318,98 @@ class WallTest(unittest.TestCase):
             self.assertEqual(1, len(lines), command)
             self.assertIn(os.path.join(self.dir, "map.json"), lines[0])
             self.assertIn("Expecting value", lines[0])
+
+
+GOOD_ATTEST = "done: pasted the new rule into the hosted chat settings"
+
+
+class AttestTest(TempSetup):
+    """A string with no file behind it closes only on a written attest."""
+
+    MAP = {
+        "version": 1,
+        "surfaces": {
+            "prompt": {
+                "triggers": ["prompts/system.md"],
+                "strings": [
+                    {"id": "docs", "path": "docs/agents.md", "why": "the docs repeat the rules"},
+                    {"id": "hosted", "kind": "attest", "where": "the rules pasted into the hosted chat settings",
+                     "why": "the hosted assistant keeps its own copy of the rules"},
+                ],
+            },
+        },
+    }
+
+    def open_and_move_docs(self):
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        self.append("docs/agents.md", "- cite files\n")
+
+    def test_enumerate_names_where_an_attest_string_lives(self):
+        out = self.wall("enumerate", "prompts/system.md").stdout
+        self.assertIn("prompt/hosted", out)
+        self.assertIn("the rules pasted into the hosted chat settings", out)
+
+    def test_close_refuses_until_the_attest_string_is_attested(self):
+        self.open_and_move_docs()
+        refused = self.wall("close")
+        self.assertEqual(1, refused.returncode)
+        self.assertIn("MISSING prompt/hosted", refused.stdout)
+        self.assertIn("the rules pasted into the hosted chat settings", refused.stdout)
+        self.assertIn("attest", refused.stdout)
+        attested = self.wall("attest", "prompt/hosted", GOOD_ATTEST)
+        self.assertEqual(0, attested.returncode, attested.stdout + attested.stderr)
+        closed = self.wall("close")
+        self.assertEqual(0, closed.returncode, closed.stdout)
+        self.assertIn("1 moved, 1 answered", closed.stdout)
+
+    def test_attest_must_start_done(self):
+        self.open_and_move_docs()
+        result = self.wall("attest", "prompt/hosted", "pasted the new rule into the hosted chat settings")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("must start", result.stdout)
+
+    def test_short_attest_is_refused(self):
+        self.open_and_move_docs()
+        result = self.wall("attest", "prompt/hosted", "done: pasted it")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("at least", result.stdout)
+
+    def test_attest_on_a_file_string_is_refused(self):
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        result = self.wall("attest", "prompt/docs", GOOD_ATTEST)
+        self.assertEqual(1, result.returncode)
+        self.assertIn("file", result.stdout)
+        self.assertIn("MISSING prompt/docs", self.wall("close").stdout)
+
+    def test_attest_string_can_also_be_waived(self):
+        self.open_and_move_docs()
+        self.wall("waive", "prompt/hosted", "unchanged because the hosted assistant never sees this rule")
+        self.assertEqual(0, self.wall("close").returncode)
+
+    def test_attest_usage_error_exits_2(self):
+        result = self.wall("attest", "prompt/hosted")
+        self.assertEqual(2, result.returncode)
+        self.assertEqual(1, len(result.stderr.splitlines()))
+
+    def test_attest_string_without_where_is_a_map_error(self):
+        broken = json.loads(json.dumps(self.MAP))
+        del broken["surfaces"]["prompt"]["strings"][1]["where"]
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            json.dump(broken, f)
+        result = self.wall("enumerate", "prompts/system.md")
+        self.assertEqual(2, result.returncode)
+        self.assertIn("where", result.stderr)
+
+    def test_unknown_string_kind_is_a_map_error(self):
+        broken = json.loads(json.dumps(self.MAP))
+        broken["surfaces"]["prompt"]["strings"][1]["kind"] = "external"
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            json.dump(broken, f)
+        result = self.wall("enumerate", "prompts/system.md")
+        self.assertEqual(2, result.returncode)
+        self.assertIn("external", result.stderr)
 
 
 class ShippedWalkthroughTest(unittest.TestCase):

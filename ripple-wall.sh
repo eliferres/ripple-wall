@@ -5,6 +5,7 @@
 #   status               the open batch, plus anything still blocked on its owner
 #   enumerate <path>...  dry run: every string a change to these paths must move
 #   waive <key> "..."    answer a string with a written reason, or block it on its owner
+#   attest <key> "done: ..."  close a string that has no file, saying what was done
 #   close [label]        the fail-closed gate; refuses and names what is missing
 set -eu
 export RIPPLE_PROG="$0"   # so the wall's hints name the way it was actually run

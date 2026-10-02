@@ -30,6 +30,7 @@ PROG = os.environ.get("RIPPLE_PROG") or os.path.basename(sys.argv[0])
 
 WAIVER_PREFIX = "unchanged because "
 BLOCKED_PREFIX = "blocked-on-owner:"
+ATTEST_PREFIX = "done: "
 WAIVER_MIN = 40  # a reason short enough to type without thinking is not a reason
 
 
@@ -109,6 +110,12 @@ def load_map():
     return ripple_map
 
 
+# A file string closes when its file changes. An attest string has no file the wall can hash
+# (a hosted dashboard, a setting in someone else's tool), so it names where the copy lives
+# and closes only on a written "done: ..." from whoever updated it.
+STRING_FIELDS = {"file": ("id", "path", "why"), "attest": ("id", "where", "why")}
+
+
 def map_fault(ripple_map):
     """The first thing wrong with a parsed map, in the reader's words, or None."""
     if not isinstance(ripple_map, dict) or not isinstance(ripple_map.get("surfaces"), dict):
@@ -120,7 +127,11 @@ def map_fault(ripple_map):
             if not isinstance(surface.get(key), list):
                 return "surface %s has no %s list" % (surface_id, key)
         for string in surface["strings"]:
-            missing = [k for k in ("id", "path", "why") if not isinstance(string, dict) or k not in string]
+            kind = string.get("kind", "file") if isinstance(string, dict) else "file"
+            if kind not in STRING_FIELDS:
+                return "a string under surface %s has kind %r; known kinds: %s" % (
+                    surface_id, kind, ", ".join(STRING_FIELDS))
+            missing = [k for k in STRING_FIELDS[kind] if not isinstance(string, dict) or k not in string]
             if missing:
                 return "a string under surface %s has no %s" % (surface_id, ", ".join(missing))
     return None
@@ -155,12 +166,19 @@ def surfaces_for(ripple_map, path):
 
 
 def strings_for(ripple_map, surface_ids):
-    """(key, path, why) for every string attached to these surfaces, in map order."""
+    """(key, kind, target, why) for every string attached to these surfaces, in map order.
+    The target is the resolved path of a file string, or the where text of an attest string."""
     out = []
     for surface_id in surface_ids:
         for string in ripple_map["surfaces"][surface_id]["strings"]:
-            out.append(("%s/%s" % (surface_id, string["id"]), resolve(string["path"]), string["why"]))
+            kind = string.get("kind", "file")
+            target = string["where"] if kind == "attest" else resolve(string["path"])
+            out.append(("%s/%s" % (surface_id, string["id"]), kind, target, string["why"]))
     return out
+
+
+def shown(kind, target):
+    return "attest: " + target if kind == "attest" else short(target)
 
 
 def digest(path):
@@ -172,7 +190,8 @@ def digest(path):
 
 
 def every_mapped_file(ripple_map):
-    return sorted({resolve(s["path"]) for surface in ripple_map["surfaces"].values() for s in surface["strings"]})
+    return sorted({resolve(s["path"]) for surface in ripple_map["surfaces"].values()
+                   for s in surface["strings"] if s.get("kind", "file") == "file"})
 
 
 def active_surfaces(ripple_map, batch):
@@ -238,17 +257,37 @@ def cmd_waive(ripple_map, argv):
     else:
         die('RIPPLE WALL: a waiver must start "%s" or "%s". Refusing to close a string on a shrug.'
             % (WAIVER_PREFIX.strip(), BLOCKED_PREFIX))
+    record_answer(ripple_map, key, line, "waive")
+    return 0
+
+
+def cmd_attest(ripple_map, argv):
+    if len(argv) < 2:
+        refuse('usage: %s attest <key> "done: ..."' % PROG)
+    key, line = argv[0], argv[1].strip()
+    if not line.startswith(ATTEST_PREFIX):
+        die('RIPPLE WALL: an attest must start "%s" and say what was done and where.' % ATTEST_PREFIX.strip())
+    if len(line) < WAIVER_MIN:
+        die("RIPPLE WALL: that attest is %d characters. Say what was done in at least %d." % (len(line), WAIVER_MIN))
+    record_answer(ripple_map, key, line, "attest")
+    return 0
+
+
+def record_answer(ripple_map, key, line, event):
+    """Write an answer into the open batch, refusing a key close would never read."""
     batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch to answer into.")
-    known = {k for k, _, _ in strings_for(ripple_map, active_surfaces(ripple_map, batch))}
-    if key not in known:
-        die("RIPPLE WALL: %s is not a string on the open surfaces. Known: %s" % (key, ", ".join(sorted(known))))
+    kinds = {k: kind for k, kind, _, _ in strings_for(ripple_map, active_surfaces(ripple_map, batch))}
+    if key not in kinds:
+        die("RIPPLE WALL: %s is not a string on the open surfaces. Known: %s" % (key, ", ".join(sorted(kinds))))
+    # "done:" on a file the wall can hash would be a claim it can check and the file contradicts.
+    if event == "attest" and kinds[key] != "attest":
+        die("RIPPLE WALL: %s is a file string: it closes when its file changes, or with waive." % key)
     batch["answers"][key] = line
     write_json(BATCH, batch)
-    log("waive", key=key, line=line)
+    log(event, key=key, line=line)
     print("ripple: answer recorded for %s" % key)
-    return 0
 
 
 def cmd_enumerate(ripple_map, argv):
@@ -259,8 +298,8 @@ def cmd_enumerate(ripple_map, argv):
         print("ripple: none of those paths trigger a mapped surface.")
         return 0
     print("surfaces triggered: %s" % ", ".join(surfaces))
-    for key, path, why in strings_for(ripple_map, surfaces):
-        print("  %s — %s (%s)" % (key, short(path), why))
+    for key, kind, target, why in strings_for(ripple_map, surfaces):
+        print("  %s — %s (%s)" % (key, shown(kind, target), why))
     return 0
 
 
@@ -271,8 +310,16 @@ def cmd_close(ripple_map, argv):
         die("RIPPLE WALL: no open batch.")
     surfaces = active_surfaces(ripple_map, batch)
     moved, answered, blocked, missing = [], [], [], []
-    for key, path, why in strings_for(ripple_map, surfaces):
+    for key, kind, path, why in strings_for(ripple_map, surfaces):
         answer = batch["answers"].get(key)
+        if kind == "attest":
+            if not answer:
+                missing.append((key, "needs an attest: " + path, why))
+            elif answer.startswith(BLOCKED_PREFIX):
+                blocked.append((key, answer))
+            else:
+                answered.append((key, answer))
+            continue
         current = digest(path)
         snap = batch["snapshot"].get(path)
         if current is None and snap is not None and not answer:
@@ -308,7 +355,7 @@ def cmd_close(ripple_map, argv):
     return 0
 
 
-COMMANDS = {"open": cmd_open, "status": cmd_status, "waive": cmd_waive,
+COMMANDS = {"open": cmd_open, "status": cmd_status, "waive": cmd_waive, "attest": cmd_attest,
             "enumerate": cmd_enumerate, "close": cmd_close}
 
 
