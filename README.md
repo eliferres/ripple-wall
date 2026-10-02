@@ -192,7 +192,10 @@ string to the triggers it is about:
 
 `mentions_trigger` asks the string only when its file contains the
 triggering file's name; a file that is gone is asked anyway, so a
-deleted copy still blocks. `trigger_matches` takes a list of paths or
+deleted copy still blocks. The flip side: a new or renamed file that no
+copy names yet is not asked about at all, so the settings file is never
+asked to wire a hook it has not heard of. Where that matters, cover it
+with a `trigger_matches` condition or an unconditional string. `trigger_matches` takes a list of paths or
 globs, written like `triggers`, and asks the string only when one of
 them matched the change. Give both and both must hold. `enumerate`
 prints only the strings a change is asked for.
@@ -262,6 +265,10 @@ blocks anything is a checker that never protected anything.
 
 - The map is hand-maintained, and it can go stale like anything else. A
   copy you never mapped is a copy the wall cannot see.
+- `mentions_trigger` sees only names already written down. A new or
+  renamed file that no copy mentions yet passes without the question;
+  pair it with `trigger_matches` or an unconditional string where a new
+  file must be wired somewhere.
 - Matching is per file, not semantic. It knows a file changed, not that
   it changed *correctly*: a whitespace edit satisfies a string. A file
   that vanishes mid-batch is refused as missing, not counted as moved.
