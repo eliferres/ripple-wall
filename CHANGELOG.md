@@ -10,6 +10,7 @@
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
 ### Fixed
+- Fixed two strings with the same id under one surface sharing a single answer, so a waiver for one closed both: the map is now refused with exit 2, naming the key.
 - Fixed a corrupt or unreadable batch file reading as "no open batch", which let `close` pass: every command that reads the batch, the blocked list, or the map now exits 2 with one line on stderr naming the file and the parse error.
 - Fixed usage errors exiting 1 on stdout while an unknown subcommand exited 2: wrong usage now always prints one line on stderr and exits 2, matching the exit-code table the README now carries.
 - Fixed a hand-written map of the wrong shape crashing with a Python traceback: a map with no `surfaces` object, a surface missing its `triggers` or `strings`, or a string missing `id`, `path` or `why` is now refused with one line on stderr naming what is missing, exit 2.

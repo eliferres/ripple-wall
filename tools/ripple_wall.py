@@ -129,6 +129,7 @@ def map_fault(ripple_map):
         for key in ("triggers", "strings"):
             if not isinstance(surface.get(key), list):
                 return "surface %s has no %s list" % (surface_id, key)
+        seen = set()
         for string in surface["strings"]:
             kind = string.get("kind", "file") if isinstance(string, dict) else "file"
             if kind not in STRING_FIELDS:
@@ -137,6 +138,10 @@ def map_fault(ripple_map):
             missing = [k for k in STRING_FIELDS[kind] if not isinstance(string, dict) or k not in string]
             if missing:
                 return "a string under surface %s has no %s" % (surface_id, ", ".join(missing))
+            # Two strings under one key share one answer, so an attest meant for one would close both.
+            if string["id"] in seen:
+                return "two strings share the key %s/%s" % (surface_id, string["id"])
+            seen.add(string["id"])
             if "when" in string:
                 bad = when_fault(string["when"], kind)
                 if bad:

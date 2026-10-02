@@ -434,6 +434,16 @@ class AttestTest(TempSetup):
         self.assertEqual(2, result.returncode)
         self.assertIn("where", result.stderr)
 
+    def test_duplicate_ids_in_one_surface_are_a_map_error(self):
+        broken = json.loads(json.dumps(self.MAP))
+        broken["surfaces"]["prompt"]["strings"][1]["id"] = "docs"
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            json.dump(broken, f)
+        result = self.wall("enumerate", "prompts/system.md")
+        self.assertEqual(2, result.returncode)
+        self.assertEqual(1, len(result.stderr.splitlines()))
+        self.assertIn("prompt/docs", result.stderr)
+
     def test_unknown_string_kind_is_a_map_error(self):
         broken = json.loads(json.dumps(self.MAP))
         broken["surfaces"]["prompt"]["strings"][1]["kind"] = "external"
