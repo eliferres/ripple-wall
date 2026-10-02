@@ -132,12 +132,17 @@ def map_fault(ripple_map):
         seen = set()
         for string in surface["strings"]:
             kind = string.get("kind", "file") if isinstance(string, dict) else "file"
-            if kind not in STRING_FIELDS:
+            if not isinstance(kind, str) or kind not in STRING_FIELDS:
                 return "a string under surface %s has kind %r; known kinds: %s" % (
                     surface_id, kind, ", ".join(STRING_FIELDS))
             missing = [k for k in STRING_FIELDS[kind] if not isinstance(string, dict) or k not in string]
             if missing:
                 return "a string under surface %s has no %s" % (surface_id, ", ".join(missing))
+            # Every field is text the wall joins into keys, paths and messages.
+            wrong = [k for k in STRING_FIELDS[kind] if not isinstance(string[k], str) or not string[k]]
+            if wrong:
+                return "a string under surface %s has a %s that is not non-empty text" % (
+                    surface_id, ", ".join(wrong))
             # Two strings under one key share one answer, so an attest meant for one would close both.
             if string["id"] in seen:
                 return "two strings share the key %s/%s" % (surface_id, string["id"])

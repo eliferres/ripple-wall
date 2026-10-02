@@ -444,6 +444,18 @@ class AttestTest(TempSetup):
         self.assertEqual(1, len(result.stderr.splitlines()))
         self.assertIn("prompt/docs", result.stderr)
 
+    def test_string_fields_of_the_wrong_type_are_a_map_error(self):
+        for index, field, value in ((1, "kind", ["attest"]), (1, "where", 5), (1, "id", 5),
+                                    (1, "why", None), (0, "path", 5), (0, "id", "")):
+            broken = json.loads(json.dumps(self.MAP))
+            broken["surfaces"]["prompt"]["strings"][index][field] = value
+            with open(os.path.join(self.dir, "map.json"), "w") as f:
+                json.dump(broken, f)
+            result = self.wall("enumerate", "prompts/system.md")
+            self.assertEqual(2, result.returncode, (field, value))
+            self.assertEqual(1, len(result.stderr.splitlines()), (field, value))
+            self.assertIn(field, result.stderr, (field, value))
+
     def test_unknown_string_kind_is_a_map_error(self):
         broken = json.loads(json.dumps(self.MAP))
         broken["surfaces"]["prompt"]["strings"][1]["kind"] = "external"
