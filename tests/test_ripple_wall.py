@@ -412,6 +412,99 @@ class AttestTest(TempSetup):
         self.assertIn("external", result.stderr)
 
 
+class ConditionalStringTest(TempSetup):
+    """A string with "when" is asked only of the triggers it applies to."""
+
+    MAP = {
+        "version": 1,
+        "surfaces": {
+            "hooks": {
+                "triggers": ["hooks/"],
+                "strings": [
+                    {"id": "tests", "path": "tests.md", "why": "every hook has a test entry"},
+                    {"id": "settings", "path": "settings.json", "why": "the settings file wires some hooks",
+                     "when": {"mentions_trigger": True}},
+                    {"id": "deploy-doc", "path": "docs/deploy.md", "why": "the deploy guide lists its checks",
+                     "when": {"trigger_matches": ["hooks/deploy-*.sh"]}},
+                ],
+            },
+        },
+    }
+    FILES = {
+        "hooks/deploy-check.sh": "echo deploy\n",
+        "hooks/lint.sh": "echo lint\n",
+        "settings.json": '{"hooks": ["hooks/deploy-check.sh"]}\n',
+        "docs/deploy.md": "- deploy-check\n",
+        "tests.md": "- lint\n",
+    }
+
+    def test_enumerate_skips_strings_whose_condition_does_not_match(self):
+        out = self.wall("enumerate", "hooks/lint.sh").stdout
+        self.assertIn("hooks/tests", out)
+        self.assertNotIn("hooks/settings", out)
+        self.assertNotIn("hooks/deploy-doc", out)
+
+    def test_enumerate_asks_every_string_whose_condition_matches(self):
+        out = self.wall("enumerate", "hooks/deploy-check.sh").stdout
+        for key in ("hooks/tests", "hooks/settings", "hooks/deploy-doc"):
+            self.assertIn(key, out)
+
+    def test_unmatched_condition_does_not_hold_the_batch(self):
+        self.append("hooks/lint.sh", "echo strict\n")
+        self.wall("open", "hooks/lint.sh")
+        self.append("tests.md", "- lint strict\n")
+        closed = self.wall("close")
+        self.assertEqual(0, closed.returncode, closed.stdout)
+        self.assertIn("1 moved", closed.stdout)
+
+    def test_matched_condition_holds_the_batch(self):
+        self.append("hooks/deploy-check.sh", "echo strict\n")
+        self.wall("open", "hooks/deploy-check.sh")
+        self.append("tests.md", "- deploy-check strict\n")
+        refused = self.wall("close")
+        self.assertEqual(1, refused.returncode)
+        self.assertIn("MISSING hooks/settings", refused.stdout)
+        self.assertIn("MISSING hooks/deploy-doc", refused.stdout)
+
+    def test_a_deleted_file_is_still_asked(self):
+        self.wall("open", "hooks/deploy-check.sh")
+        os.remove(os.path.join(self.dir, "settings.json"))
+        self.append("tests.md", "- deploy-check strict\n")
+        self.append("docs/deploy.md", "- strict\n")
+        refused = self.wall("close")
+        self.assertEqual(1, refused.returncode)
+        self.assertIn("MISSING hooks/settings", refused.stdout)
+        self.assertIn("VANISHED", refused.stdout)
+
+    def test_waiver_on_a_string_not_asked_is_refused(self):
+        self.wall("open", "hooks/lint.sh")
+        result = self.wall("waive", "hooks/settings", GOOD_WAIVER)
+        self.assertEqual(1, result.returncode)
+        self.assertIn("not a string on the open surfaces", result.stdout)
+
+    def test_malformed_condition_is_a_map_error(self):
+        for when in ("deploy", {"mentions": True}, {"trigger_matches": "hooks/deploy-*.sh"},
+                     {"mentions_trigger": "yes"}):
+            broken = json.loads(json.dumps(self.MAP))
+            broken["surfaces"]["hooks"]["strings"][1]["when"] = when
+            with open(os.path.join(self.dir, "map.json"), "w") as f:
+                json.dump(broken, f)
+            result = self.wall("enumerate", "hooks/lint.sh")
+            self.assertEqual(2, result.returncode, when)
+            self.assertIn("when", result.stderr, when)
+
+    def test_mentions_trigger_on_an_attest_string_is_a_map_error(self):
+        broken = json.loads(json.dumps(self.MAP))
+        broken["surfaces"]["hooks"]["strings"].append(
+            {"id": "hosted", "kind": "attest", "where": "the dashboard", "why": "a copy",
+             "when": {"mentions_trigger": True}})
+        with open(os.path.join(self.dir, "map.json"), "w") as f:
+            json.dump(broken, f)
+        result = self.wall("enumerate", "hooks/lint.sh")
+        self.assertEqual(2, result.returncode)
+        self.assertIn("mentions_trigger", result.stderr)
+
+
 class ShippedWalkthroughTest(unittest.TestCase):
     """The README walkthrough, run against a copy of the shipped demo setup."""
 

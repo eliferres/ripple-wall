@@ -134,6 +134,26 @@ def map_fault(ripple_map):
             missing = [k for k in STRING_FIELDS[kind] if not isinstance(string, dict) or k not in string]
             if missing:
                 return "a string under surface %s has no %s" % (surface_id, ", ".join(missing))
+            if "when" in string:
+                bad = when_fault(string["when"], kind)
+                if bad:
+                    return "string %s/%s: %s" % (surface_id, string["id"], bad)
+    return None
+
+
+def when_fault(when, kind):
+    """What is wrong with a string's "when" condition, or None. A condition the wall
+    misreads would silently stop asking a question, so anything unexpected is refused."""
+    if not isinstance(when, dict) or not when or set(when) - {"trigger_matches", "mentions_trigger"}:
+        return 'when must be an object holding trigger_matches and/or mentions_trigger'
+    if "trigger_matches" in when and not (
+            isinstance(when["trigger_matches"], list) and all(isinstance(p, str) for p in when["trigger_matches"])):
+        return "when.trigger_matches must be a list of paths or globs"
+    if "mentions_trigger" in when:
+        if when["mentions_trigger"] is not True:
+            return "when.mentions_trigger must be true"
+        if kind != "file":
+            return "when.mentions_trigger needs a file to read; an attest string has none"
     return None
 
 
@@ -153,24 +173,49 @@ def resolve_user(path):
     return os.path.realpath(os.path.expanduser(path))
 
 
-def surfaces_for(ripple_map, path):
+def matches(path, patterns):
+    """True when the path is one of these map patterns: an exact path, a directory, or a glob."""
     target = resolve(path)
-    hits = []
-    for surface_id, surface in ripple_map["surfaces"].items():
-        for trigger in surface["triggers"]:
-            pattern = resolve(trigger).rstrip("/")
-            if target == pattern or target.startswith(pattern + os.sep) or fnmatch.fnmatch(target, pattern):
-                hits.append(surface_id)
-                break
-    return sorted(hits)
+    for pattern in patterns:
+        pattern = resolve(pattern).rstrip("/")
+        if target == pattern or target.startswith(pattern + os.sep) or fnmatch.fnmatch(target, pattern):
+            return True
+    return False
 
 
-def strings_for(ripple_map, surface_ids):
-    """(key, kind, target, why) for every string attached to these surfaces, in map order.
+def surfaces_for(ripple_map, path):
+    return sorted(sid for sid, surface in ripple_map["surfaces"].items() if matches(path, surface["triggers"]))
+
+
+def asked(string, triggers):
+    """Whether a string's "when" condition holds for the paths that opened its surface.
+
+    A hooks/ directory surface asks every string of every hook, and most of those questions
+    do not apply: a settings file wires a few hooks, not all of them. trigger_matches narrows
+    a string to some triggers; mentions_trigger asks it only when its file names a trigger
+    by file name. A file that cannot be read is asked anyway, so a deleted copy still fails."""
+    when = string.get("when") or {}
+    if "trigger_matches" in when and not any(matches(t, when["trigger_matches"]) for t in triggers):
+        return False
+    if when.get("mentions_trigger"):
+        try:
+            with open(resolve(string["path"]), encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            return True
+        return any(os.path.basename(t) in text for t in triggers)
+    return True
+
+
+def strings_for(ripple_map, triggers):
+    """(key, kind, target, why) for every string these paths ask for, in map order.
     The target is the resolved path of a file string, or the where text of an attest string."""
     out = []
-    for surface_id in surface_ids:
+    for surface_id in sorted({s for t in triggers for s in surfaces_for(ripple_map, t)}):
+        mine = [t for t in triggers if surface_id in surfaces_for(ripple_map, t)]
         for string in ripple_map["surfaces"][surface_id]["strings"]:
+            if not asked(string, mine):
+                continue
             kind = string.get("kind", "file")
             target = string["where"] if kind == "attest" else resolve(string["path"])
             out.append(("%s/%s" % (surface_id, string["id"]), kind, target, string["why"]))
@@ -278,7 +323,7 @@ def record_answer(ripple_map, key, line, event):
     batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch to answer into.")
-    kinds = {k: kind for k, kind, _, _ in strings_for(ripple_map, active_surfaces(ripple_map, batch))}
+    kinds = {k: kind for k, kind, _, _ in strings_for(ripple_map, batch["triggers"])}
     if key not in kinds:
         die("RIPPLE WALL: %s is not a string on the open surfaces. Known: %s" % (key, ", ".join(sorted(kinds))))
     # "done:" on a file the wall can hash would be a claim it can check and the file contradicts.
@@ -293,12 +338,13 @@ def record_answer(ripple_map, key, line, event):
 def cmd_enumerate(ripple_map, argv):
     if not argv:
         refuse("usage: %s enumerate <path> [path ...]" % PROG)
-    surfaces = sorted({s for p in argv for s in surfaces_for(ripple_map, resolve_user(p))})
+    paths = [resolve_user(p) for p in argv]
+    surfaces = sorted({s for p in paths for s in surfaces_for(ripple_map, p)})
     if not surfaces:
         print("ripple: none of those paths trigger a mapped surface.")
         return 0
     print("surfaces triggered: %s" % ", ".join(surfaces))
-    for key, kind, target, why in strings_for(ripple_map, surfaces):
+    for key, kind, target, why in strings_for(ripple_map, paths):
         print("  %s — %s (%s)" % (key, shown(kind, target), why))
     return 0
 
@@ -310,7 +356,7 @@ def cmd_close(ripple_map, argv):
         die("RIPPLE WALL: no open batch.")
     surfaces = active_surfaces(ripple_map, batch)
     moved, answered, blocked, missing = [], [], [], []
-    for key, kind, path, why in strings_for(ripple_map, surfaces):
+    for key, kind, path, why in strings_for(ripple_map, batch["triggers"]):
         answer = batch["answers"].get(key)
         if kind == "attest":
             if not answer:

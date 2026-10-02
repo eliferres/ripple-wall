@@ -170,6 +170,30 @@ The wall has nothing to hash, so the string closes only on
 characters saying what was done and where. `waive` answers it the same
 way it answers a file.
 
+A surface whose trigger is a directory asks every string of every file
+in it, and most of those questions do not apply. On one real setup a
+`hooks/` surface of 81 hooks asked each one about the settings file
+that wires hooks and the rules file that names them. The settings file
+wired 45 of them and the rules file named 18, so most of those
+questions did not apply to the hook asked. A `when` condition narrows a
+string to the triggers it is about:
+
+```json
+{
+ "id": "settings",
+ "path": "settings.json",
+ "why": "the settings file wires the hooks it names",
+ "when": { "mentions_trigger": true }
+}
+```
+
+`mentions_trigger` asks the string only when its file contains the
+triggering file's name; a file that is gone is asked anyway, so a
+deleted copy still blocks. `trigger_matches` takes a list of paths or
+globs, written like `triggers`, and asks the string only when one of
+them matched the change. Give both and both must hold. `enumerate`
+prints only the strings a change is asked for.
+
 ## What close refuses
 
 Seven refusals, each guarding a way config drift actually happens. Six
