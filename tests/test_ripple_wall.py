@@ -537,6 +537,50 @@ class ConditionalStringTest(TempSetup):
         self.assertIn("mentions_trigger", result.stderr)
 
 
+class ExcludeGeneratedTest(TempSetup):
+    """Files a tool rewrites on its own schedule never open a batch."""
+
+    MAP = {
+        "version": 1,
+        "exclude_generated": ["hooks/*.bak", "hooks/cache/"],
+        "surfaces": {
+            "hooks": {
+                "triggers": ["hooks/"],
+                "strings": [{"id": "tests", "path": "tests.md", "why": "every hook has a test entry"}],
+            },
+        },
+    }
+    FILES = {
+        "hooks/lint.sh": "echo lint\n",
+        "hooks/lint.sh.bak": "echo old lint\n",
+        "hooks/cache/state.json": "{}\n",
+        "tests.md": "- lint\n",
+    }
+
+    def test_generated_paths_open_nothing(self):
+        for path in ("hooks/lint.sh.bak", "hooks/cache/state.json"):
+            result = self.wall("open", path)
+            self.assertEqual(0, result.returncode, path)
+            self.assertIn("generated", result.stdout, path)
+            self.assertIn("no open batch", self.wall("status").stdout, path)
+
+    def test_enumerate_skips_generated_paths(self):
+        out = self.wall("enumerate", "hooks/lint.sh.bak").stdout
+        self.assertIn("none of those paths", out)
+
+    def test_a_real_trigger_beside_them_still_opens(self):
+        self.assertIn("RIPPLE BATCH OPEN", self.wall("open", "hooks/lint.sh").stdout)
+
+    def test_exclude_generated_must_be_a_list_of_paths(self):
+        for value in ("hooks/*.bak", [1], {"paths": []}):
+            broken = dict(self.MAP, exclude_generated=value)
+            with open(os.path.join(self.dir, "map.json"), "w") as f:
+                json.dump(broken, f)
+            result = self.wall("enumerate", "hooks/lint.sh")
+            self.assertEqual(2, result.returncode, value)
+            self.assertIn("exclude_generated", result.stderr, value)
+
+
 class ShippedWalkthroughTest(unittest.TestCase):
     """The README walkthrough, run against a copy of the shipped demo setup."""
 

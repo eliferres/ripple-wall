@@ -194,6 +194,17 @@ globs, written like `triggers`, and asks the string only when one of
 them matched the change. Give both and both must hold. `enumerate`
 prints only the strings a change is asked for.
 
+A trigger directory also collects files nobody edits: an editor's
+backups, a cache, build output. List them at the top of the map and
+they never open a batch:
+
+```json
+"exclude_generated": ["hooks/*.bak", "hooks/cache/"]
+```
+
+Entries are written like `triggers`: exact paths, directories, or
+globs, relative to the map.
+
 ## What close refuses
 
 Seven refusals, each guarding a way config drift actually happens. Six

@@ -120,6 +120,9 @@ def map_fault(ripple_map):
     """The first thing wrong with a parsed map, in the reader's words, or None."""
     if not isinstance(ripple_map, dict) or not isinstance(ripple_map.get("surfaces"), dict):
         return "no surfaces object at the top level"
+    excluded = ripple_map.get("exclude_generated", [])
+    if not isinstance(excluded, list) or not all(isinstance(p, str) for p in excluded):
+        return "exclude_generated must be a list of paths or globs"
     for surface_id, surface in ripple_map["surfaces"].items():
         if not isinstance(surface, dict):
             return "surface %s is not an object" % surface_id
@@ -183,7 +186,15 @@ def matches(path, patterns):
     return False
 
 
+def generated(ripple_map, path):
+    """Files a tool rewrites on its own schedule (backups, caches, build output) sit inside
+    trigger directories but are nobody's edit; opening a batch on them is pure noise."""
+    return matches(path, ripple_map.get("exclude_generated", []))
+
+
 def surfaces_for(ripple_map, path):
+    if generated(ripple_map, path):
+        return []
     return sorted(sid for sid, surface in ripple_map["surfaces"].items() if matches(path, surface["triggers"]))
 
 
@@ -250,7 +261,10 @@ def cmd_open(ripple_map, argv):
     triggered = surfaces_for(ripple_map, path)
     batch = read_batch()
     if not triggered and not batch:
-        print("ripple: %s is not a foundational surface — nothing to open." % short(path))
+        if generated(ripple_map, path):
+            print("ripple: %s is generated (exclude_generated) — nothing to open." % short(path))
+        else:
+            print("ripple: %s is not a foundational surface — nothing to open." % short(path))
         return 0
     if not batch:
         batch = {
