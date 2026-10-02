@@ -423,6 +423,9 @@ def cmd_close(ripple_map, argv):
         for key, detail in missing:
             print("  MISSING %s — %s" % (key, detail))
         print('Update each one, or answer it: %s waive <key> "unchanged because ..."' % PROG)
+        attest_keys = {k for k, kind, _, _ in strings_for(ripple_map, batch["triggers"]) if kind == "attest"}
+        if any(k in attest_keys for k, _ in missing):
+            print('A string with no file closes when you say what was done: %s attest <key> "done: ..."' % PROG)
         log("close-refused", label=label, missing=[k for k, _ in missing])
         return 1
     os.remove(BATCH)

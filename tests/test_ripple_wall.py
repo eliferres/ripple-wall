@@ -388,7 +388,7 @@ class AttestTest(TempSetup):
         self.assertEqual(1, refused.returncode)
         self.assertIn("MISSING prompt/hosted", refused.stdout)
         self.assertIn("the rules pasted into the hosted chat settings", refused.stdout)
-        self.assertIn("attest", refused.stdout)
+        self.assertIn('attest <key> "done: ..."', refused.stdout)
         attested = self.wall("attest", "prompt/hosted", GOOD_ATTEST)
         self.assertEqual(0, attested.returncode, attested.stdout + attested.stderr)
         closed = self.wall("close")
