@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 716" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="16">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 716" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="16" xml:space="preserve">
   <title id="t">ripple-wall demo terminal</title>
   <desc id="d">A terminal session: adding a house rule to the shared system prompt, opening a batch, close refusing with two unaccounted strings, then updating one and waiving the other before closing clean.</desc>
   <style>
+    text { white-space: pre; }
     .p { fill: #7ee2a8; }
     .cmd { fill: #e8eef5; }
     .dim { fill: #9fb0c0; }
