@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Nothing yet.
+
+## [1.2.0](https://github.com/eliferres/ripple-wall/releases/tag/v1.2.0) - 2026-10-02
+
 ### Added
 - Added `exclude_generated` to the map: backups, caches and build output that sit inside a trigger directory no longer open a batch; a blank entry, which would exclude every file, is refused as a map error.
 - Added `close --all`, which lists every string the open batch asks for with its state (moved, answered, blocked or missing), closes nothing, and exits 1 when `close` would refuse.

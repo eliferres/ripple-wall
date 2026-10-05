@@ -6,7 +6,7 @@ root; an install uses ripple-map.json in the current directory. RIPPLE_MAP and
 RIPPLE_STATE_DIR override both, which is how the tests stay hermetic.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import fnmatch
 import hashlib
