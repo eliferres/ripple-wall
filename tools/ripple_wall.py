@@ -129,6 +129,9 @@ def map_fault(ripple_map):
     if not path_list(ripple_map.get("exclude_generated", [])):
         return "exclude_generated must be a list of non-blank paths or globs"
     for surface_id, surface in ripple_map["surfaces"].items():
+        # Keys are surface/id: a slash in either part lets two strings share one key.
+        if "/" in surface_id:
+            return "surface id %r contains a /" % surface_id
         if not isinstance(surface, dict):
             return "surface %s is not an object" % surface_id
         for key in ("triggers", "strings"):
@@ -150,6 +153,8 @@ def map_fault(ripple_map):
             if wrong:
                 return "a string under surface %s has a %s that is not non-empty text" % (
                     surface_id, ", ".join(wrong))
+            if "/" in string["id"]:
+                return "string id %r under surface %s contains a /" % (string["id"], surface_id)
             # Two strings under one key share one answer, so an attest meant for one would close both.
             if string["id"] in seen:
                 return "two strings share the key %s/%s" % (surface_id, string["id"])

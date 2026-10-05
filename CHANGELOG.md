@@ -10,6 +10,7 @@
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
 ### Fixed
+- Fixed a `/` inside a surface or string id letting two strings share one key, so one answer closed both: such an id is now refused, exit 2.
 - Fixed a trigger that is blank or not text being accepted: a blank one matched every file beside the map, and a number crashed; both are now refused with one line on stderr, exit 2.
 - Fixed a map string whose `kind`, `id`, `path`, `where` or `why` is not text (a list, a number, null, or empty) crashing with a traceback: it is now refused with one line on stderr, exit 2.
 - Fixed two strings with the same id under one surface sharing a single answer, so a waiver for one closed both: the map is now refused with exit 2, naming the key.

@@ -310,6 +310,18 @@ class WallTest(TempSetup):
             self.assertIn(map_path, lines[0])
             self.assertNotIn("Traceback", result.stderr)
 
+    def test_a_slash_in_an_id_is_a_map_error(self):
+        # Keys are surface/id, so a/b + c and a + b/c would share the key a/b/c.
+        string = {"id": "c", "path": "docs/agents.md", "why": "w"}
+        for surfaces in ({"a/b": {"triggers": ["p"], "strings": [string]}},
+                         {"a": {"triggers": ["p"], "strings": [dict(string, id="b/c")]}}):
+            with open(os.path.join(self.dir, "map.json"), "w") as f:
+                json.dump({"version": 1, "surfaces": surfaces}, f)
+            result = self.wall("enumerate", "prompts/system.md")
+            self.assertEqual(2, result.returncode, surfaces)
+            self.assertEqual(1, len(result.stderr.splitlines()), surfaces)
+            self.assertIn("/", result.stderr, surfaces)
+
     def test_corrupt_map_refuses_every_command(self):
         with open(os.path.join(self.dir, "map.json"), "w") as f:
             f.write("not json")
