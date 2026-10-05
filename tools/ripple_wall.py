@@ -116,19 +116,26 @@ def load_map():
 STRING_FIELDS = {"file": ("id", "path", "why"), "attest": ("id", "where", "why")}
 
 
+def path_list(value):
+    """True for a list of paths or globs. A blank entry resolves to the map's own folder,
+    which matches every file under it, so one stray "" would open or exclude everything."""
+    return isinstance(value, list) and all(isinstance(p, str) and p.strip() for p in value)
+
+
 def map_fault(ripple_map):
     """The first thing wrong with a parsed map, in the reader's words, or None."""
     if not isinstance(ripple_map, dict) or not isinstance(ripple_map.get("surfaces"), dict):
         return "no surfaces object at the top level"
-    excluded = ripple_map.get("exclude_generated", [])
-    if not isinstance(excluded, list) or not all(isinstance(p, str) for p in excluded):
-        return "exclude_generated must be a list of paths or globs"
+    if not path_list(ripple_map.get("exclude_generated", [])):
+        return "exclude_generated must be a list of non-blank paths or globs"
     for surface_id, surface in ripple_map["surfaces"].items():
         if not isinstance(surface, dict):
             return "surface %s is not an object" % surface_id
         for key in ("triggers", "strings"):
             if not isinstance(surface.get(key), list):
                 return "surface %s has no %s list" % (surface_id, key)
+        if not path_list(surface["triggers"]):
+            return "surface %s has a trigger that is not a non-blank path or glob" % surface_id
         seen = set()
         for string in surface["strings"]:
             kind = string.get("kind", "file") if isinstance(string, dict) else "file"
@@ -160,10 +167,8 @@ def when_fault(when, kind):
     if not isinstance(when, dict) or not when or set(when) - {"trigger_matches", "mentions_trigger"}:
         return 'when must be an object holding trigger_matches and/or mentions_trigger'
     # An empty list matches no trigger, which would switch the string off for good.
-    if "trigger_matches" in when and not (
-            isinstance(when["trigger_matches"], list) and when["trigger_matches"]
-            and all(isinstance(p, str) and p for p in when["trigger_matches"])):
-        return "when.trigger_matches must be a non-empty list of paths or globs"
+    if "trigger_matches" in when and not (when["trigger_matches"] and path_list(when["trigger_matches"])):
+        return "when.trigger_matches must be a non-empty list of non-blank paths or globs"
     if "mentions_trigger" in when:
         if when["mentions_trigger"] is not True:
             return "when.mentions_trigger must be true"

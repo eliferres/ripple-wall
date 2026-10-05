@@ -295,6 +295,8 @@ class WallTest(TempSetup):
             '{"version": 1, "surfaces": {"prompt": {"triggers": ["prompts/system.md"]}}}',
             '{"version": 1, "surfaces": {"prompt": {"strings": []}}}',
             '{"version": 1, "surfaces": {"prompt": {"triggers": ["p"], "strings": [{"id": "x"}]}}}',
+            '{"version": 1, "surfaces": {"prompt": {"triggers": [5], "strings": []}}}',
+            '{"version": 1, "surfaces": {"prompt": {"triggers": [" "], "strings": []}}}',
         ]
         map_path = os.path.join(self.dir, "map.json")
         for body in wrong_maps:
@@ -538,7 +540,8 @@ class ConditionalStringTest(TempSetup):
 
     def test_malformed_condition_is_a_map_error(self):
         for when in ("deploy", {"mentions": True}, {"trigger_matches": "hooks/deploy-*.sh"},
-                     {"mentions_trigger": "yes"}, {}, {"trigger_matches": []}, {"trigger_matches": [""]}):
+                     {"mentions_trigger": "yes"}, {}, {"trigger_matches": []}, {"trigger_matches": [""]},
+                     {"trigger_matches": [" "]}):
             broken = json.loads(json.dumps(self.MAP))
             broken["surfaces"]["hooks"]["strings"][1]["when"] = when
             with open(os.path.join(self.dir, "map.json"), "w") as f:
@@ -594,7 +597,7 @@ class ExcludeGeneratedTest(TempSetup):
         self.assertIn("RIPPLE BATCH OPEN", self.wall("open", "hooks/lint.sh").stdout)
 
     def test_exclude_generated_must_be_a_list_of_paths(self):
-        for value in ("hooks/*.bak", [1], {"paths": []}):
+        for value in ("hooks/*.bak", [1], {"paths": []}, [""], ["  "]):
             broken = dict(self.MAP, exclude_generated=value)
             with open(os.path.join(self.dir, "map.json"), "w") as f:
                 json.dump(broken, f)

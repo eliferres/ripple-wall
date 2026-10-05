@@ -3,13 +3,14 @@
 ## Unreleased
 
 ### Added
-- Added `exclude_generated` to the map: backups, caches and build output that sit inside a trigger directory no longer open a batch.
+- Added `exclude_generated` to the map: backups, caches and build output that sit inside a trigger directory no longer open a batch; a blank entry, which would exclude every file, is refused as a map error.
 - Added `close --all`, which lists every string the open batch asks for with its state (moved, answered, blocked or missing), closes nothing, and exits 1 when `close` would refuse.
 - Added `when` conditions on map strings: `mentions_trigger` asks a string only when its file names the changed file, and `trigger_matches` only when the change matches given paths or globs, so a directory surface stops asking every file about copies that only concern a few; an empty or malformed condition is refused as a map error.
 - Added attest strings for copies that are not files, such as rules pasted into a hosted dashboard: a map entry with `"kind": "attest"` and a `where` closes only on `attest <key> "done: ..."`, a sentence of at least 40 characters, and a refused close names that command when one is missing.
 - Added a `pyproject.toml` so `pipx install git+https://github.com/eliferres/ripple-wall` installs a `ripple-wall` command that reads `ripple-map.json` from the current directory, plus `--version`.
 
 ### Fixed
+- Fixed a trigger that is blank or not text being accepted: a blank one matched every file beside the map, and a number crashed; both are now refused with one line on stderr, exit 2.
 - Fixed a map string whose `kind`, `id`, `path`, `where` or `why` is not text (a list, a number, null, or empty) crashing with a traceback: it is now refused with one line on stderr, exit 2.
 - Fixed two strings with the same id under one surface sharing a single answer, so a waiver for one closed both: the map is now refused with exit 2, naming the key.
 - Fixed a corrupt or unreadable batch file reading as "no open batch", which let `close` pass: every command that reads the batch, the blocked list, or the map now exits 2 with one line on stderr naming the file and the parse error.
