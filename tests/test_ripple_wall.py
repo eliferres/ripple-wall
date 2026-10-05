@@ -310,6 +310,29 @@ class WallTest(TempSetup):
             self.assertIn(map_path, lines[0])
             self.assertNotIn("Traceback", result.stderr)
 
+    def test_close_refuses_when_the_map_changed_mid_batch(self):
+        # A string added after open has no snapshot, so its file would read as moved.
+        map_path = os.path.join(self.dir, "map.json")
+        with open(map_path) as f:
+            original = f.read()
+        self.append("prompts/system.md", "- cite files\n")
+        self.wall("open", "prompts/system.md")
+        self.append("docs/agents.md", "- cite files\n")
+        self.append("agents/planner.yaml", "  - cite files\n")
+        grown = json.loads(original)
+        grown["surfaces"]["prompt"]["strings"].append(
+            {"id": "roster", "path": "config/roster.json", "why": "added mid-batch"})
+        with open(map_path, "w") as f:
+            json.dump(grown, f)
+        for args in (["close"], ["close", "--all"]):
+            refused = self.wall(*args)
+            self.assertEqual(1, refused.returncode, args)
+            self.assertIn("map changed", refused.stdout, args)
+            self.assertIn("batch.json", refused.stdout, args)
+        with open(map_path, "w") as f:
+            f.write(original)
+        self.assertEqual(0, self.wall("close").returncode)
+
     def test_a_slash_in_an_id_is_a_map_error(self):
         # Keys are surface/id, so a/b + c and a + b/c would share the key a/b/c.
         string = {"id": "c", "path": "docs/agents.md", "why": "w"}

@@ -295,6 +295,7 @@ def cmd_open(ripple_map, argv):
             "answers": {},
             # The snapshot is what "did this string move" is measured against.
             "snapshot": {p: digest(p) for p in every_mapped_file(ripple_map)},
+            "map_sha256": digest(MAP),
         }
         log("open", trigger=path, surfaces=triggered)
         print("RIPPLE BATCH OPEN — %s touched (%s)." % (short(path), ", ".join(triggered)))
@@ -420,6 +421,12 @@ def cmd_close(ripple_map, argv):
     batch = read_batch()
     if not batch:
         die("RIPPLE WALL: no open batch.")
+    # A string added or repointed after open has no snapshot, so its file would read as
+    # moved. Batches written before this check carry no map hash and are not held to it.
+    if batch.get("map_sha256", digest(MAP)) != digest(MAP):
+        die("RIPPLE WALL: the map changed since this batch opened, so a string added or repointed "
+            "has nothing to compare against. Put the map back, or delete %s and run %s open <path> again."
+            % (BATCH, PROG))
     surfaces = active_surfaces(ripple_map, batch)
     states = string_states(ripple_map, batch)
     if listing:

@@ -234,7 +234,11 @@ are about the answer you give:
 The seventh is state the wall cannot trust: a map, batch file or blocked
 list that is missing, will not parse, or is not the shape the wall
 reads. It is never treated as an empty one, and it stops every command
-that reads it.
+that reads it. The map itself is held still for the life of a batch:
+`open` records its hash, and if the map has changed by `close`, a string
+added or repointed would have no snapshot to compare against, so
+`close` refuses (exit 1) until you put the map back, or delete
+`.ripple/batch.json` and open the batch again.
 
 A refusal names only what is missing. To read the whole batch at once,
 `./ripple-wall.sh close --all` lists every string the batch asks for
