@@ -1,8 +1,6 @@
 # ripple-wall
 
-Change the system prompt, the model roster, or the rules file in an agent setup and every copy of that fact goes stale in silence. ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. Bash and stdlib Python; run it from a clone or install the command.
-
-No dependencies, no daemon.
+ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. No dependencies, no daemon.
 
 ![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -10,6 +8,10 @@ No dependencies, no daemon.
 ![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing a house rule added to the shared system prompt, ripple-wall refusing to close the batch until two unaccounted strings move or are answered, then closing clean.">
+
+## What it does
+
+Change the system prompt, the model roster, or the rules file in an agent setup and every copy of that fact goes stale in silence. Bash and stdlib Python; run it from a clone or install the command.
 
 ## Quick start
 
