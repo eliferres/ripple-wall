@@ -2,12 +2,14 @@
 
 ripple-wall is one JSON map of what depends on what, plus a close command that refuses until every mapped copy has moved or carries a written reason. No dependencies, no daemon.
 
-![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)
+[![ci](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml/badge.svg)](https://github.com/eliferres/ripple-wall/actions/workflows/ci.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing a house rule added to the shared system prompt, ripple-wall refusing to close the batch until two unaccounted strings move or are answered, then closing clean.">
+
+The [fde-agent-skills](https://github.com/eliferres/fde-agent-skills) library documents the working methods behind this tool and its sibling tools as agent skills.
 
 ## What it does
 
